@@ -1,7 +1,7 @@
 # DropleX
 
 Welcome to the ***DropleX*** repository! This project utilizes 
-If you want to run the tracking pipeline and the analysis of the resulting trajectories using the provided data, follow the instructions below. 
+If you want to run the tracking pipeline and the analysis of the resulting trajectories using the provided sample data, follow the instructions below. 
 
 ## Getting Started
 
@@ -14,7 +14,7 @@ Follow the steps below to set up and run the project on your local machine.
 Ensure you have the following software installed:
 
 - [Python 3.x](https://www.python.org/downloads/) (required)
-- [Miniconda] (https://www.anaconda.com/docs/getting-started/miniconda/install) (for package management)
+- [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install) (for package management)
 
 ### Installation
 
@@ -35,20 +35,24 @@ Ensure you have the following software installed:
    ```
 
 4. **Download sample data**
+   Download sample video and trajectories:
+   ```bash
+   python3 setup.py
+   ```
 
 
 ### Running the Tracking pipeline
 
 To execute the Tracking pipeline, run the following command:
 ```bash
-python main_tracking.py
+python3 main_tracking.py
 ```
 
 ### Running the Analysis
 
 To execute the Tracking pipeline, run the following command:
 ```bash
-python main_analysis.py
+python3 main_analysis.py
 ```
 
 ---
@@ -81,7 +85,7 @@ Once the application starts, you will be guided through an interactive menu:
    ```bash
    🤔 Which part do you want to run?
       1. Test
-      2. Detection and Classification
+      2. Detection & Classification
       3. Linking
       4. Interpolation
       5. Kalman filter & RTS Smoother
@@ -145,8 +149,6 @@ Once the application starts, you will be guided through an interactive menu:
    🤔 Do you want to proceed with these choices? (yes/no)
    ```
 
----
-
 ### Output
 
 Results will be saved in the `tracking_results/{video}` directory.
@@ -165,10 +167,12 @@ output/
 │   └── ...
 ```
 
----
-
 ### Training the Stardist deep neural network
 
+
+
+
+---
 
 ## How to use DropleX analysis
 
@@ -252,9 +256,8 @@ Once the application starts, you will be guided through an interactive menu:
    🤔 Do you want to proceed with these choices? (yes/no)
    ```
 
----
 
-### Output of the trajectories analysis
+### Output of the trajectory analysis
 
 Results will be saved in the `output/{video_name}` directory, organized by analysis type. If enabled, visual plots will also be generated.
 
@@ -275,5 +278,3 @@ output/
 ├── video_name2/
 │   └── ...
 ```
-
----

@@ -45,7 +45,7 @@ def main():
     model_name = model_names[model_option - 1]
     resolution = 1000
     
-    tracking_options = ask_options("Which part do you want to run? (1, 2, ...)", ["Test", "Detection and classification", "Linking", "Interpolation", "Kalman filter & RTS smoother", "All of them"])
+    tracking_options = ask_options("Which part do you want to run? (1, 2, ...)", ["Test", "Detection & classification", "Linking", "Interpolation", "Kalman filter & RTS smoother", "All of them"])
     # Set to false the following verbs if you want to import the data without running the process
     TEST = any(opt in tracking_options for opt in {1, 6})
     DETECT = any(opt in tracking_options for opt in {2, 6})
