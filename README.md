@@ -1,8 +1,8 @@
 # DropleX
 
-Welcome to the ***DropleX*** repository! This project contains a Tracking Pipeline that utilizes StarDist for object detection and classification and implements an Unscented Kalman filter with RTS smoother to further suppress measurement error. Moreover, this project contains an Analysis Pipeline that process the resuling trajectories in a window-framework to accomodate out of equilibrium dynamics.
+Welcome to the ***DropleX*** repository! This project contains a Tracking Pipeline that utilizes StarDist for object detection and classification and implements an Unscented Kalman filter with RTS smoother to further suppress measurement error. Moreover, this project contains an Analysis Pipeline that processes the resulting trajectories in a window-framework to accommodate out of equilibrium dynamics.
 
-If you want to run the tracking pipeline and the analysis of the resulting trajectories using the provided sample data, follow the instructions below. 
+If you want to run the tracking pipeline and analyze of the resulting trajectories using the provided sample data, follow the instructions below. 
 
 ## Getting Started
 
