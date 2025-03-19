@@ -4,10 +4,10 @@ import requests
 # Define files and their corresponding download URLs
 FILES = {
     "video_input/sample_video.mp4": "https://github.com/skandiz/DropleX/releases/download/v1.0/sample_video.mp4",
-    "tracking_results/sample_video/skandiz_model_rgb/raw_detection_0_35999.parquet": "https://github.com/skandiz/DropleX/releases/tag/v1.0/raw_detection_0_35999.parquet",
-    "tracking_results/sample_video/skandiz_model_rgb/raw_tracking_0_35999.parquet": "https://github.com/skandiz/DropleX/releases/tag/v1.0/raw_tracking_0_35999.parquet",
-    "tracking_results/sample_video/skandiz_model_rgb/interpolated_tracking_0_35999.parquet": "https://github.com/skandiz/DropleX/releases/tag/v1.0/interpolated_tracking_0_35999.parquet",
-    "tracking_results/sample_video/skandiz_model_rgb/trajectories_kalman_rts_0_35999_subsample_factor_1.parquet": "https://github.com/skandiz/DropleX/releases/tag/v1.0/trajectories_kalman_rts_0_35999_subsample_factor_1.parquet"
+    "tracking_results/sample_video/skandiz_model_rgb/raw_detection_0_35999.parquet": "https://github.com/skandiz/DropleX/releases/download/v1.0/raw_detection_0_35999.parquet",
+    "tracking_results/sample_video/skandiz_model_rgb/raw_tracking_0_35999.parquet": "https://github.com/skandiz/DropleX/releases/download/v1.0/raw_tracking_0_35999.parquet",
+    "tracking_results/sample_video/skandiz_model_rgb/interpolated_tracking_0_35999.parquet": "https://github.com/skandiz/DropleX/releases/download/v1.0/interpolated_tracking_0_35999.parquet",
+    "tracking_results/sample_video/skandiz_model_rgb/trajectories_kalman_rts_0_35999_subsample_factor_1.parquet": "https://github.com/skandiz/DropleX/releases/download/v1.0/trajectories_kalman_rts_0_35999_subsample_factor_1.parquet"
 }
 
 # Ensure both directories exist
