@@ -1,0 +1,21 @@
+{
+    "sample_video": {
+        "system_name": "sample video",
+        "initial_offset": 0,
+        "n_particles": 50,
+        "xmin": 80,
+        "ymin": 75,
+        "xmax": 905,
+        "ymax": 900,
+        "resolution": 1000,
+        "petri_diameter": 86.5,
+        "subsample_factor": 1,
+        "video_fps": 30,
+        "pdf_base_path": "../analysis_results/pdf_results/",
+        "video_source_path": "./video_input/sample_video.mp4",
+        "trajectory_path": "./tracking_results/sample_video/skandiz_model_rgb/trajectories_kalman_rts_0_35999_subsample_factor_1.parquet",
+        "stages_seconds": [0, 240, 480, 720, 960],
+        "single_species": false,
+        "crop_verb": false
+    }
+}

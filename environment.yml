@@ -1,0 +1,20 @@
+name: DropleX
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - tensorflow
+  - stardist
+  - fastparquet
+  - pyarrow
+  - filterpy
+  - joblib
+  - numpy
+  - opencv
+  - pandas
+  - trackpy
+  - matplotlib
+  - pip
+  - pip:
+      - yupi

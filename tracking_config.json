@@ -1,0 +1,12 @@
+{
+    "sample_video": {
+        "system_name": "sample video",
+        "xmin": 80, "ymin": 75, "xmax": 905, "ymax": 900,
+        "petri_diameter": 86.5,
+        "all_frames": [0, 36000, 1],
+        "analysis_frames": [0, 36000, 1],
+        "n_instances": 50,
+        "video_source_path": "./video_input/sample_video.mp4",
+        "crop_verb": false
+    }
+  }
