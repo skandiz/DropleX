@@ -9,7 +9,7 @@ plt.rcParams.update({
 	'xtick.labelsize': 10,
 	'ytick.labelsize': 10})
 import matplotlib.gridspec as gridspec
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.transforms import ScaledTranslation
 
 from analysis_utils import get_imsd, get_emsd, get_emsd_windowed_v2, powerLaw, onClick
@@ -39,7 +39,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
         MSD_r, pw_exp_r = get_emsd(imsd.loc[:, imsd.columns.isin([i for i in params['red_particle_idx']])], x_diffusive, id_start_fit, id_end_fit)
         alpha_r = [np.round(pw_exp_r[0, 1], 3), np.round(pw_exp_r[1, 1], 3)]
         k_r = [np.round(pw_exp_r[0, 0], 3), np.round(pw_exp_r[1, 0], 3)]
-        print("        Power law fit -- Red droplets:   α = " + f"{alpha_r[0]} ± {alpha_r[1]}, " + "K = " + f"{k_r[0]} ± {k_r[1]} {params['dimension_units']}²")
+        print("        Power law fit -- Red droplets :   α = " + f"{alpha_r[0]} ± {alpha_r[1]}, " + "K = " + f"{k_r[0]} ± {k_r[1]} {params['dimension_units']}²")
 
 
     if 1:
@@ -107,7 +107,10 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
     print("    Windowed TAMSD analysis...")
     if len(params['blue_particle_idx']) > 0:
         if run_analysis_verb:
-            EMSD_wind_b, pw_exp_wind_b = get_emsd_windowed_v2(params['n_windows'], params['startFrames'], params['endFrames'], trajectories.loc[trajectories.particle.isin(params['blue_particle_idx']), ['particle', 'frame', 'x', 'y']], params['pxDimension'], params['fps'], maxLagtime, x_diffusive, id_start_fit, id_end_fit, progress_verb = True)
+            EMSD_wind_b, pw_exp_wind_b = get_emsd_windowed_v2(params['n_windows'], params['startFrames'], params['endFrames'],
+                                                              trajectories.loc[trajectories.particle.isin(params['blue_particle_idx']), ['particle', 'frame', 'x', 'y']],
+                                                              params['pxDimension'], params['fps'], maxLagtime, x_diffusive, id_start_fit, id_end_fit, progress_verb = True,
+                                                              description = '    Computing blue droplets tamsd')
             EMSD_wind_b = np.transpose(EMSD_wind_b, (1, 0, 2))
             if os.path.isfile(f"./{params['analysis_data_path']}/tamsd_analysis/EMSD_windowed_b.npz"):
                 os.remove(f"./{params['analysis_data_path']}/tamsd_analysis/EMSD_windowed_b.npz")
@@ -119,7 +122,10 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
     
     if len(params['red_particle_idx']) > 0:
         if run_analysis_verb:
-            EMSD_wind_r, pw_exp_wind_r = get_emsd_windowed_v2(params['n_windows'], params['startFrames'], params['endFrames'], trajectories.loc[trajectories.particle.isin(params['red_particle_idx']), ['particle', 'frame', 'x', 'y']], params['pxDimension'], params['fps'], maxLagtime, x_diffusive, id_start_fit, id_end_fit, progress_verb = True)
+            EMSD_wind_r, pw_exp_wind_r = get_emsd_windowed_v2(params['n_windows'], params['startFrames'], params['endFrames'],
+                                                              trajectories.loc[trajectories.particle.isin(params['red_particle_idx']), ['particle', 'frame', 'x', 'y']],
+                                                              params['pxDimension'], params['fps'], maxLagtime, x_diffusive, id_start_fit, id_end_fit, progress_verb = True,
+                                                              description = '    Computing red droplets tamsd ')
             EMSD_wind_r = np.transpose(EMSD_wind_r, (1, 0, 2))
             if os.path.isfile(f"./{params['analysis_data_path']}/tamsd_analysis/EMSD_windowed_r.npz"):
                 os.remove(f"./{params['analysis_data_path']}/tamsd_analysis/EMSD_windowed_r.npz")
@@ -447,7 +453,9 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             plt.tight_layout()
             fig.canvas.mpl_connect('button_press_event', onClick)
             ani = FuncAnimation(fig, update_plot, params['n_windows'], interval = 5, blit=False)
-            if save_plots: ani.save(f"./{params['res_path']}/tamsd_analysis/EMSD_wind.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+            writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
+            if save_plots:
+                ani.save(f"./{params['res_path']}/tamsd_analysis/EMSD_wind.mp4", writer=writer, dpi = 300)
             if show_plots:
                 plt.show()
             else:
@@ -498,8 +506,9 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                 plt.tight_layout()
                 fig.canvas.mpl_connect('button_press_event', onClick)
                 ani = FuncAnimation(fig, update_plot, params['n_windows'], interval = 5, blit=False)
+                writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
                 if save_plots: 
-                    ani.save(f"./{params['res_path']}/tamsd_analysis/IMSD_wind.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+                    ani.save(f"./{params['res_path']}/tamsd_analysis/IMSD_wind.mp4", writer=writer, dpi = 300)
                 if show_plots:
                     plt.show()
                 else:

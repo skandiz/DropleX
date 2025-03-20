@@ -231,7 +231,7 @@ def compute_kinematics(trajectories, fps, n_frames, n_particles):
     velocities = np.zeros((n_frames, n_particles, 2))
     accelerations = np.zeros_like(velocities)
 
-    for i in tqdm(trajectories.particle.unique(), desc = 'Computing velocities and accelerations'):
+    for i in tqdm(trajectories.particle.unique(), desc = '   Computing velocities and accelerations'):
         p = trajectories.loc[trajectories.particle == i]
         temp = Trajectory(p.x, p.y, dt = 1/fps, traj_id = i,
                           diff_est = {'method': DiffMethod.LINEAR_DIFF,
@@ -526,13 +526,13 @@ def get_emsd_wind(trajs, pxDimension, fps, maxLagtime, fit_range, id_start_fit, 
     return MSD, pw_exp
 
 
-def get_emsd_windowed_v2(nSteps, startFrames, endFrames, trajs, pxDimension, fps, maxLagtime, fit_range, id_start_fit, id_end_fit, progress_verb):
+def get_emsd_windowed_v2(nSteps, startFrames, endFrames, trajs, pxDimension, fps, maxLagtime, fit_range, id_start_fit, id_end_fit, progress_verb, description):
     if progress_verb:
         MSD_wind, pw_exp_wind = zip(*parallel(
             joblib.delayed(get_emsd_wind)(
                 trajs.loc[startFrames[k]:endFrames[k]-1],
                 pxDimension, fps, maxLagtime, fit_range, id_start_fit, id_end_fit
-            ) for k in tqdm(range(nSteps), desc="Computing windowed MSD")
+            ) for k in tqdm(range(nSteps), desc = description)
         ))
     else:
         MSD_wind, pw_exp_wind = zip(*parallel(
@@ -555,13 +555,13 @@ def speed_wind(trajs_wind, fps, pxDimension, speed_bins, speed_bin_centers):
     fit_results_wind_g, r2_g_wind = fit_hist(speed_distr, speed_bin_centers, MB_2D_generalized, [1., 2., 1.], maxfev_ = 10000)
     return mean_speed, std_speed, speed_distr, fit_results_wind, r2_wind, fit_results_wind_g, r2_g_wind
 
-def speed_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, speed_bins, speed_bin_centers, progress_verb):
+def speed_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, speed_bins, speed_bin_centers, progress_verb, description):
     if progress_verb:    
         mean_speed, std_speed, speed_distr, fit_results_wind, r2_wind, fit_results_wind_g, r2_g_wind = zip(*parallel(
             joblib.delayed(speed_wind)(
                 trajs.loc[startFrames[k]:endFrames[k]-1],
                 fps, pxDimension, speed_bins, speed_bin_centers
-                ) for k in tqdm(range(nSteps), desc = "Computing windowed velocity distributions")
+                ) for k in tqdm(range(nSteps), desc = description)
         ))
     else:
         mean_speed, std_speed, speed_distr, fit_results_wind, r2_wind, fit_results_wind_g, r2_g_wind = zip(*parallel(
@@ -588,12 +588,12 @@ def turn_angl_wind(trajs_wind, fps, pxDimension, turn_angles_bins, turn_angles_b
     lorentzian_fit_results_wind, lorentzian_r2_wind = fit_hist(turn_angles, turn_angles_bin_centers, wrapped_lorentzian_distr, [1., 0.], maxfev_ = 10000)
     return turn_angles, gaussian_fit_results_wind, gaussian_r2_wind, lorentzian_fit_results_wind, lorentzian_r2_wind 
 
-def turning_angles_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, turn_angles_bins, turn_angles_bin_centers, progress_verb):
+def turning_angles_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, turn_angles_bins, turn_angles_bin_centers, progress_verb, description):
     if progress_verb: 
         turn_angles, gaussian_fit_results_wind, gaussian_r2_wind, lorentzian_fit_results_wind, lorentzian_r2_wind = zip(*parallel(
             joblib.delayed(turn_angl_wind)(trajs.loc[startFrames[k]:endFrames[k]-1],
                 fps, pxDimension, turn_angles_bins, turn_angles_bin_centers
-                ) for k in tqdm(range(nSteps), desc = "Computing windowed turning angles distributions")
+                ) for k in tqdm(range(nSteps), desc = description)
         ))
     else:
         turn_angles, gaussian_fit_results_wind, gaussian_r2_wind, lorentzian_fit_results_wind, lorentzian_r2_wind = zip(*parallel(
@@ -644,12 +644,12 @@ def vacf_yupi_modified(trajs_wind, fps, pxDimension, lag, vacf_time_verb = False
         vacf_std = np.std(_vacf, axis=1)  # Standard deviation
         return vacf_mean, vacf_std
     
-def vacf_windowed(trajs, nSteps, startFrames, endFrames, fps, pxDimension, maxLagtime, progress_verb):
+def vacf_windowed(trajs, nSteps, startFrames, endFrames, fps, pxDimension, maxLagtime, progress_verb, description):
     if progress_verb:
         vacf_wind, vacf_std_wind = zip(*parallel(
             joblib.delayed(vacf_yupi_modified)(trajs.loc[startFrames[k]:endFrames[k] - 1],
                             fps, pxDimension, maxLagtime) 
-            for k in tqdm(range(nSteps), desc = "Computing windowed velocity autocovariance")
+            for k in tqdm(range(nSteps), desc = description)
         ))
     else:
         vacf_wind, vacf_std_wind = zip(*parallel(
@@ -666,7 +666,7 @@ def vacf_windowed(trajs, nSteps, startFrames, endFrames, fps, pxDimension, maxLa
 def precompute_neighbour_ids(coords_orig, coords_target):
     """Precompute nearest neighbour IDs for all frames."""
     ids_neighbours_list = np.zeros((len(coords_orig), len(coords_target[0])), dtype=np.int32)
-    for i in tqdm(range(len(coords_orig)), desc = 'Precomputing nearest neighbour IDs'):
+    for i in range(len(coords_orig)):
         kd = KDTree(coords_orig[i])
         ids_neighbours_list[i] = kd.query(coords_target[i], k = 2)[1][:, 1] 
     return ids_neighbours_list
@@ -700,7 +700,7 @@ def dimer_distr_batch(ids_neighbours_list, coords_orig, coords_taget, pxDimensio
     	res[frame] = dimer_distr_frame(coords_orig[frame], coords_taget[frame], ids_neighbours_list[frame], pxDimension, r_bins, samecolor)
     return np.mean(res, axis = 0)
 
-def compute_windowed_dimer_distribution(coords_orig, coords_target, r_bins, pxDimension, samecolor, n_windows, startFrames, endFrames):
+def compute_windowed_dimer_distribution(coords_orig, coords_target, r_bins, pxDimension, samecolor, n_windows, startFrames, endFrames, description):
     """Compute dimer distributions for windowed time frames."""
     
     # Precompute nearest neighbour IDs
@@ -712,6 +712,6 @@ def compute_windowed_dimer_distribution(coords_orig, coords_target, r_bins, pxDi
                               		coords_orig[startFrames[i]:endFrames[i]],\
                               		coords_target[startFrames[i]:endFrames[i]],\
                               		pxDimension, r_bins, samecolor)
-                                for i in tqdm(range(n_windows)))
+                                for i in tqdm(range(n_windows), desc = description))
     
     return np.array(dimer_distr_windowed)

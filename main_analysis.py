@@ -88,6 +88,8 @@ def main():
         else:
             params['pxDimension'] = params['petri_diameter']/(params['xmax'] - params['xmin']) # [mm/pixel]
 
+    print(params['pxDimension'])
+    
     params['red_mask'], params['colors'] = create_masks(params['n_particles'], params['red_particle_idx'])
     params['startFrames'], params['window_center_sec'], params['endFrames'], params['n_windows'], params['n_stages'], params['steps_plot'] = compute_windowed_analysis(frames, params['fps'], params['window_length'], params['stride_length'], params['frames_stages'])
     params['shades_of_blue'], params['default_kwargs_blue'], params['shades_of_red'], params['default_kwargs_red'], params['letter_labels'], params['stages_shades'] = generate_plot_styles(params['n_stages'])
@@ -99,8 +101,7 @@ def main():
         
     params = create_directories(params)
     
-    print_recap_analysis(choices, params)
-    
+    print_recap_analysis(choices, params)    
     proceed = ask_yesno("Do you want to proceed with these choices?")
     if not proceed:
         user_message("Analysis aborted. Please restart the program.", "error")

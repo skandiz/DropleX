@@ -9,7 +9,7 @@ plt.rcParams.update({
 	'xtick.labelsize': 10,
 	'ytick.labelsize': 10})
 import matplotlib.gridspec as gridspec
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.transforms import ScaledTranslation
 
 from analysis_utils import vacf_yupi_modified, vacf_windowed, onClick
@@ -69,7 +69,10 @@ def run_vacf_analysis(trajectories, params, show_plots, save_plots, run_analysis
     print('    Windowed velocity autocovariance analysis...')
     if len(params['blue_particle_idx']) > 0:
         if run_analysis_verb:
-            vacf_wind_b, vacf_std_wind_b = vacf_windowed(trajectories.loc[trajectories.particle.isin(params['blue_particle_idx'])], params['n_windows'], params['startFrames'], params['endFrames'], params['fps'], params['pxDimension'], maxLagtime, progress_verb = True)
+            vacf_wind_b, vacf_std_wind_b = vacf_windowed(trajectories.loc[trajectories.particle.isin(params['blue_particle_idx'])],
+                                                         params['n_windows'], params['startFrames'], params['endFrames'], params['fps'],
+                                                         params['pxDimension'], maxLagtime, 
+                                                         progress_verb = True, description = '    Computing windowed vacf for blue droplets')
             if os.path.isfile(f"./{params['analysis_data_path']}/vacf_analysis/vacf_wind_b.npz"):
                 os.remove(f"./{params['analysis_data_path']}/vacf_analysis/vacf_wind_b.npz")
             np.savez(f"./{params['analysis_data_path']}/vacf_analysis/vacf_wind_b.npz", vacf_wind_b = vacf_wind_b, vacf_std_wind_b = vacf_std_wind_b)
@@ -84,7 +87,10 @@ def run_vacf_analysis(trajectories, params, show_plots, save_plots, run_analysis
             
     if len(params['red_particle_idx']) > 0:
         if run_analysis_verb:
-            vacf_wind_r, vacf_std_wind_r = vacf_windowed(trajectories.loc[trajectories.particle.isin(params['red_particle_idx'])], params['n_windows'], params['startFrames'], params['endFrames'], params['fps'], params['pxDimension'], maxLagtime, progress_verb = True)
+            vacf_wind_r, vacf_std_wind_r = vacf_windowed(trajectories.loc[trajectories.particle.isin(params['red_particle_idx'])],
+                                                         params['n_windows'], params['startFrames'], params['endFrames'], params['fps'],
+                                                         params['pxDimension'], maxLagtime,
+                                                         progress_verb = True, description = '    Computing windowed vacf for red droplets ')
             if os.path.isfile(f"./{params['analysis_data_path']}/vacf_analysis/vacf_wind_r.npz"):
                 os.remove(f"./{params['analysis_data_path']}/vacf_analysis/vacf_wind_r.npz")
             np.savez(f"./{params['analysis_data_path']}/vacf_analysis/vacf_wind_r.npz", vacf_wind_r = vacf_wind_r, vacf_std_wind_r = vacf_std_wind_r)
@@ -197,8 +203,9 @@ def run_vacf_analysis(trajectories, params, show_plots, save_plots, run_analysis
             plt.tight_layout()
             fig.canvas.mpl_connect('button_press_event', onClick)
             ani = FuncAnimation(fig, update_plot, params['n_windows'], interval = 5, blit=False)
+            writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
             if save_plots: 
-                ani.save(f"./{params['res_path']}/vacf_analysis/vacf_wind.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+                ani.save(f"./{params['res_path']}/vacf_analysis/vacf_wind.mp4", writer = writer, dpi = 300)
             if show_plots:
                 plt.show()
             else:

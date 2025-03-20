@@ -7,7 +7,7 @@ import matplotlib as mpl
 mpl.rcParams['image.cmap'] = 'gray'
 import matplotlib.pyplot as plt
 from matplotlib.transforms import ScaledTranslation
-import matplotlib.animation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 plt.rcParams.update({
 	'font.size': 15,               # General font size
 	'axes.titlesize': 14,          # Title font size
@@ -305,11 +305,14 @@ def main():
                     draw_polygons(polygons = np.array(df.coord), points = np.array(df.points), scores = np.array(df.prob),\
                                   colors = None, alpha = 1, show_dist = True, ax = ax)
                 fig.canvas.mpl_connect('button_press_event', onClick)
-                ani = matplotlib.animation.FuncAnimation(fig, update_graph, test_df_filtered.frame.unique()[:100], interval = 5, blit=False)
-                writer = matplotlib.animation.FFMpegWriter(fps = 10, metadata = dict(artist='Matteo Scandola'), extra_args=['-vcodec', 'libx264'])
+                ani = FuncAnimation(fig, update_graph, test_df_filtered.frame.unique()[:100], interval = 5, blit=False)
+                writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
                 if save_plots:
                     ani.save(f'./{res_path}/tracking_video_test.mp4', writer=writer, dpi = 500)
-                plt.close()
+                if show_plots:
+                    plt.show()
+                else:    
+                    plt.close()
 
 
         
@@ -317,7 +320,7 @@ def main():
 
         # show the trajectories of the first 5 instances
         if 1:
-            fig, ax = fig, ax = plt.subplots(1, 1, figsize = (10, 10))
+            fig, ax = fig, ax = plt.subplots(1, 1, figsize = (5, 5))
             for i in range(5):
                 df = raw_trajectory_df.loc[raw_trajectory_df.particle == i]
                 ax.plot(df.x, df.y, 'o-')

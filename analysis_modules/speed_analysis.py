@@ -9,7 +9,7 @@ plt.rcParams.update({
 	'xtick.labelsize': 10,
 	'ytick.labelsize': 10})
 import matplotlib.gridspec as gridspec
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.transforms import ScaledTranslation
 import yupi.stats as ys
 
@@ -91,7 +91,10 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
     print('    Windowed speed distribution analysis...')
     if len(params['blue_particle_idx']) > 0:
         if run_analysis_verb:
-            mean_speed_b, std_speed_b, speed_distr_b, fit_results_wind_b, r2_wind_b, fit_results_wind_g_b, r2_g_wind_b = speed_windowed(params['n_windows'], params['startFrames'], params['endFrames'], trajectories, params['fps'], params['pxDimension'], speed_bins, speed_bin_centers, progress_verb=True)
+            mean_speed_b, std_speed_b, speed_distr_b, fit_results_wind_b, r2_wind_b, fit_results_wind_g_b, r2_g_wind_b = speed_windowed(params['n_windows'], params['startFrames'], params['endFrames'],
+                                                                                                                                        trajectories, params['fps'], params['pxDimension'], 
+                                                                                                                                        speed_bins, speed_bin_centers, 
+                                                                                                                                        progress_verb=True, description = '    Computing windowed speed distribution for blue droplets')
             if os.path.isfile(f"./{params['analysis_data_path']}/speed_analysis/speed_distr_b.npz"):
                 os.remove(f"./{params['analysis_data_path']}/speed_analysis/speed_distr_b.npz")
             np.savez(f"./{params['analysis_data_path']}/speed_analysis/speed_distr_b.npz",  mean_speed_b = mean_speed_b, std_speed_b = std_speed_b, speed_distr_b = speed_distr_b, fit_results_wind_b = fit_results_wind_b, r2_wind_b = r2_wind_b, fit_results_wind_g_b = fit_results_wind_g_b, r2_g_wind_b = r2_g_wind_b)
@@ -100,7 +103,10 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
 
     if len(params['red_particle_idx']) > 0:
         if run_analysis_verb:
-            mean_speed_r, std_speed_r, speed_distr_r, fit_results_wind_r, r2_wind_r, fit_results_wind_g_r, r2_g_wind_r = speed_windowed(params['n_windows'], params['startFrames'], params['endFrames'], trajectories, params['fps'], params['pxDimension'], speed_bins, speed_bin_centers, progress_verb=True)
+            mean_speed_r, std_speed_r, speed_distr_r, fit_results_wind_r, r2_wind_r, fit_results_wind_g_r, r2_g_wind_r = speed_windowed(params['n_windows'], params['startFrames'], params['endFrames'],
+                                                                                                                                        trajectories, params['fps'], params['pxDimension'],
+                                                                                                                                        speed_bins, speed_bin_centers,
+                                                                                                                                        progress_verb=True, description = '    Computing windowed speed distribution for red droplets ')
             if os.path.isfile(f"./{params['analysis_data_path']}/speed_analysis/speed_distr_r.npz"):
                 os.remove(f"./{params['analysis_data_path']}/speed_analysis/speed_distr_r.npz")
             np.savez(f"./{params['analysis_data_path']}/speed_analysis/speed_distr_r.npz",  mean_speed_r = mean_speed_r, std_speed_r = std_speed_r, speed_distr_r = speed_distr_r, fit_results_wind_r = fit_results_wind_r, r2_wind_r = r2_wind_r, fit_results_wind_g_r = fit_results_wind_g_r, r2_g_wind_r = r2_g_wind_r)
@@ -400,7 +406,8 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
             plt.tight_layout()
             fig.canvas.mpl_connect('button_press_event', onClick)
             ani = FuncAnimation(fig, update_plot, params['n_windows'], repeat=True, blit=False)
-            if save_plots: ani.save(f"./{params['res_path']}/speed_analysis/speed_wind.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+            writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
+            if save_plots: ani.save(f"./{params['res_path']}/speed_analysis/speed_wind.mp4", writer = writer, dpi = 300)
             if show_plots: 
                 plt.show()
             else:

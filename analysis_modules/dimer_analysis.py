@@ -9,7 +9,7 @@ plt.rcParams.update({
 	'xtick.labelsize': 10,
 	'ytick.labelsize': 10})
 import matplotlib.gridspec as gridspec
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.transforms import ScaledTranslation
 from scipy.spatial import KDTree
 
@@ -19,11 +19,13 @@ def run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_
     rDisk = (params['xmax']-params['xmin'])/2 * params['resolution']/(params['xmax']-params['xmin']) 
     r_bins = np.linspace(-rDisk, rDisk, 100)*params['pxDimension']
     dr = r_bins[1] - r_bins[0]
-
+    print('    Windowed dimer distribution analysis...')
     if len(params['blue_particle_idx']) > 0:
         if run_analysis_verb:
             coords_blue = trajectories.loc[trajectories.particle.isin(params['blue_particle_idx']), ['x', 'y']].values.reshape(len(trajectories.frame.unique()), -1, 2)
-            dimer_distr_windowed_bb = compute_windowed_dimer_distribution(coords_blue, coords_blue, r_bins, params['pxDimension'], True, params['n_windows'], params['startFrames'], params['endFrames'])
+            dimer_distr_windowed_bb = compute_windowed_dimer_distribution(coords_blue, coords_blue, r_bins, params['pxDimension'],
+                                                                          True, params['n_windows'], params['startFrames'],
+                                                                          params['endFrames'], description = '    Computing windowed dimer distribution for blue-blue dimers')
             if os.path.isfile(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_bb.npz"):
                 os.remove(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_bb.npz")		
             np.savez(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_bb.npz", dimer_distr_windowed_bb = dimer_distr_windowed_bb)
@@ -34,7 +36,9 @@ def run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_
     if len(params['red_particle_idx']) > 0:
         if run_analysis_verb:
             coords_red = trajectories.loc[trajectories.particle.isin(params['red_particle_idx']), ['x', 'y']].values.reshape(len(trajectories.frame.unique()), -1, 2)
-            dimer_distr_windowed_rr = compute_windowed_dimer_distribution(coords_red, coords_red, r_bins, params['pxDimension'], True, params['n_windows'], params['startFrames'], params['endFrames']) 
+            dimer_distr_windowed_rr = compute_windowed_dimer_distribution(coords_red, coords_red, r_bins, params['pxDimension'],
+                                                                          True, params['n_windows'], params['startFrames'],
+                                                                          params['endFrames'], description = '    Computing windowed dimer distribution for red-red dimers  ')
             if os.path.isfile(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_rr.npz"):
                 os.remove(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_rr.npz")
             np.savez(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_rr.npz", dimer_distr_windowed_rr = dimer_distr_windowed_rr)
@@ -44,8 +48,12 @@ def run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_
 
     if (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) > 0):
         if run_analysis_verb:
-            dimer_distr_windowed_br = compute_windowed_dimer_distribution(coords_blue, coords_red, r_bins, params['pxDimension'], False, params['n_windows'], params['startFrames'], params['endFrames'])
-            dimer_distr_windowed_rb = compute_windowed_dimer_distribution(coords_red, coords_blue, r_bins, params['pxDimension'], False, params['n_windows'], params['startFrames'], params['endFrames'])
+            dimer_distr_windowed_br = compute_windowed_dimer_distribution(coords_blue, coords_red, r_bins, params['pxDimension'],
+                                                                          False, params['n_windows'], params['startFrames'],
+                                                                          params['endFrames'], description = '    Computing windowed dimer distribution for blue-red dimers ')
+            dimer_distr_windowed_rb = compute_windowed_dimer_distribution(coords_red, coords_blue, r_bins, params['pxDimension'],
+                                                                          False, params['n_windows'], params['startFrames'],
+                                                                          params['endFrames'], description = '    Computing windowed dimer distribution for red-blue dimers ')
             if (os.path.isfile(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_br.npz")) & (os.path.isfile(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_rb.npz")): 
                 os.remove(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_br.npz")
                 os.remove(f"./{params['analysis_data_path']}/dimer_analysis/dimer_distr_windowed_rb.npz")
@@ -224,8 +232,9 @@ def run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_
 
                 fig.canvas.mpl_connect('button_press_event', onClick)
                 ani = FuncAnimation(fig, update, np.arange(0, params['n_windows'], 10), interval = 5, blit=False)
+                writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
                 if save_plots:
-                    ani.save(f"./{params['res_path']}/dimer_analysis/dimer_distributions_animation.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+                    ani.save(f"./{params['res_path']}/dimer_analysis/dimer_distributions_animation.mp4", writer = writer, dpi = 300)
                 if show_plots:
                     plt.show()
                 else:
@@ -329,7 +338,8 @@ def run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_
 
                 fig.canvas.mpl_connect('button_press_event', onClick)
                 ani = FuncAnimation(fig, update, np.linspace(0, 1, 100), interval = 10, blit=False)
-                ani.save(f"./{params['res_path']}/dimer_analysis/rototranslations_{test_frame}_v2.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+                writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
+                ani.save(f"./{params['res_path']}/dimer_analysis/rototranslations_{test_frame}_v2.mp4", writer = writer, dpi = 300)
                 plt.close()
                 
                 fig, axs = plt.subplots(2, 2, figsize = (15, 15))
@@ -356,14 +366,14 @@ def run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_
                 plt.tight_layout()
                 fig.canvas.mpl_connect('button_press_event', onClick)
                 ani = FuncAnimation(fig, update, np.arange(0, params['n_windows'], 10), interval = 5, blit=False)
+                writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
                 if save_plots:
-                    ani.save(f"./{params['res_path']}/dimer_analysis/dimer_distributions_animation.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+                    ani.save(f"./{params['res_path']}/dimer_analysis/dimer_distributions_animation.mp4", writer = writer, dpi = 300)
                 if show_plots:
                     plt.show()
                 else:
                     plt.close()
-                    
-                    
+
     if (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) > 0):
         return (dimer_distr_windowed_bb, dimer_distr_windowed_rr, dimer_distr_windowed_br, dimer_distr_windowed_rb), r_bins, v_max
     elif (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) == 0):

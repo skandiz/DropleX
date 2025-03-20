@@ -9,7 +9,7 @@ plt.rcParams.update({
 	'xtick.labelsize': 10,
 	'ytick.labelsize': 10})
 import matplotlib.gridspec as gridspec
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.transforms import ScaledTranslation
 import yupi.stats as ys
 from tqdm import tqdm
@@ -86,61 +86,10 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             plt.close()
     
     print('    Windowed turning angles analysis...')
-    
-    if run_analysis_verb:
-        # test fit on single droplet distributions
-        r2_lorentzian = np.zeros((params['n_windows'], params['n_particles']))
-        r2_gaussian = np.zeros((params['n_windows'], params['n_particles']))
-        for k in tqdm(range(params['n_windows'])):
-            trajs = trajectories.loc[(trajectories.frame >= params['startFrames'][k]) & (trajectories.frame < params['endFrames'][k])]
-            for i in range(params['n_particles']):
-                p = trajs.loc[trajs.particle == i, ['x','y']]
-                temp_traj = Trajectory(p.x*params['pxDimension'], p.y*params['pxDimension'], dt = 1/params['fps'], traj_id=i, diff_est={'method':DiffMethod.LINEAR_DIFF, 'window_type': WindowType.CENTRAL})
-                theta = ys.turning_angles_ensemble([temp_traj], centered = True)
-                turn_angles = np.histogram(theta, bins = turn_angles_bins, density = True)[0]
-                fit_wrapped_lorentzian, r2_lorentzian[k, i] = fit_hist(turn_angles, turn_angles_bin_centers, wrapped_lorentzian_distr, [1., 0.], maxfev_ = 10000)
-                fit_gaussian, r2_gaussian[k, i] = fit_hist(turn_angles, turn_angles_bin_centers, normal_distr, [1., 0.], maxfev_ = 10000)
-        if os.path.isfile(f"./{params['analysis_data_path']}/turning_angles_analysis/turn_ang_single_fit.npz"):
-            os.remove(f"./{params['analysis_data_path']}/turning_angles_analysis/turn_ang_single_fit.npz")
-        np.savez(f"./{params['analysis_data_path']}/turning_angles_analysis/turn_ang_single_fit.npz", r2_lorentzian = r2_lorentzian, r2_gaussian = r2_gaussian)
-    else:	
-        data = np.load(f"./{params['analysis_data_path']}/turning_angles_analysis/turn_ang_single_fit.npz")
-        r2_lorentzian = data['r2_lorentzian']
-        r2_gaussian = data['r2_gaussian']
-        
-    if 1:
-        fig, (ax, ax1) = plt.subplots(1, 2, figsize = (10, 4), sharex = True, sharey = True)
-        for i in range(params['n_particles']):
-            if i in params['red_particle_idx']:
-                ax.plot(params['window_center_sec'], r2_gaussian[:, i], color = 'r', alpha = 0.5)
-                ax1.plot(params['window_center_sec'], r2_lorentzian[:, i], color = 'r', alpha = 0.5)
-            else:
-                ax.plot(params['window_center_sec'], r2_gaussian[:, i], color = 'b', alpha = 0.5)
-                ax1.plot(params['window_center_sec'], r2_lorentzian[:, i], color = 'b', alpha = 0.5)
-        ax.set(xlabel = 'Window time [s]', ylabel = r'$R^2$', title = r'$R^2$ of Gaussian fit', ylim = (0.85, 1))
-        ax1.set(xlabel = 'Window time [s]', title = r'$R^2$ of Lorentzian fit', ylim = (0.85, 1))
-        ax.grid(linewidth = 0.2)
-        ax1.grid(linewidth = 0.2)
-        for i, frame in enumerate(params['frames_stages']):
-            ax.bar(frame/params['fps'], 2000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-            ax1.bar(frame/params['fps'], 2000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax.set(xlim = (-200, 14000))
-        ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        plt.suptitle(f"Turning angles distribution fit of system {params['system_name']}")
-        plt.tight_layout()
-        if save_plots:
-            plt.savefig(f"./{params['res_path']}/turning_angles_analysis/fit_results_single_droplet.png", bbox_inches='tight')
-            plt.savefig(f"./{params['pdf_res_path']}/turning_angles_analysis/fit_results_single_droplet.pdf", bbox_inches='tight')
-        if show_plots:
-            plt.show()
-        else:
-            plt.close()
-
     if len(params['blue_particle_idx']) > 0:
         if run_analysis_verb:
-            turn_angles_b, gaussian_fit_results_wind_b, gaussian_r2_wind_b, lorentzian_fit_results_wind_b, lorentzian_r2_wind_b = turning_angles_windowed(params['n_windows'], params['startFrames'], params['endFrames'], trajectories.loc[trajectories.particle.isin(params['blue_particle_idx'])], params['fps'], params['pxDimension'], turn_angles_bins, turn_angles_bin_centers, progress_verb = True)
+            turn_angles_b, gaussian_fit_results_wind_b, gaussian_r2_wind_b, lorentzian_fit_results_wind_b, lorentzian_r2_wind_b = turning_angles_windowed(params['n_windows'], params['startFrames'], params['endFrames'], trajectories.loc[trajectories.particle.isin(params['blue_particle_idx'])], params['fps'], params['pxDimension'],
+                                                                                                                                                          turn_angles_bins, turn_angles_bin_centers, progress_verb = True, description = '    Computing windowed turning angles for blue droplets')
             if os.path.isfile(f"./{params['analysis_data_path']}/turning_angles_analysis/turning_angles_windowed_blue.npz"):
                 os.remove(f"./{params['analysis_data_path']}/turning_angles_analysis/turning_angles_windowed_blue.npz")
             np.savez(f"./{params['analysis_data_path']}/turning_angles_analysis/turning_angles_windowed_blue.npz", turn_angles_b = turn_angles_b, gaussian_fit_results_wind_b = gaussian_fit_results_wind_b, gaussian_r2_wind_b = gaussian_r2_wind_b, lorentzian_fit_results_wind_b = lorentzian_fit_results_wind_b, lorentzian_r2_wind_b = lorentzian_r2_wind_b)
@@ -154,7 +103,8 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
     
     if len(params['red_particle_idx']) > 0:
         if run_analysis_verb:
-            turn_angles_r, gaussian_fit_results_wind_r, gaussian_r2_wind_r, lorentzian_fit_results_wind_r, lorentzian_r2_wind_r = turning_angles_windowed(params['n_windows'], params['startFrames'], params['endFrames'], trajectories.loc[trajectories.particle.isin(params['red_particle_idx'])], params['fps'], params['pxDimension'], turn_angles_bins, turn_angles_bin_centers, progress_verb = True)
+            turn_angles_r, gaussian_fit_results_wind_r, gaussian_r2_wind_r, lorentzian_fit_results_wind_r, lorentzian_r2_wind_r = turning_angles_windowed(params['n_windows'], params['startFrames'], params['endFrames'], trajectories.loc[trajectories.particle.isin(params['red_particle_idx'])], params['fps'], params['pxDimension'],
+                                                                                                                                                          turn_angles_bins, turn_angles_bin_centers, progress_verb = True, description = '    Computing windowed turning angles for red droplets ')
             if os.path.isfile(f"./{params['analysis_data_path']}/turning_angles_analysis/turning_angles_windowed_red.npz"):
                 os.remove(f"./{params['analysis_data_path']}/turning_angles_analysis/turning_angles_windowed_red.npz")
             np.savez(f"./{params['analysis_data_path']}/turning_angles_analysis/turning_angles_windowed_red.npz", turn_angles_r = turn_angles_r, gaussian_fit_results_wind_r = gaussian_fit_results_wind_r, gaussian_r2_wind_r = gaussian_r2_wind_r, lorentzian_fit_results_wind_r = lorentzian_fit_results_wind_r, lorentzian_r2_wind_r = lorentzian_r2_wind_r)
@@ -612,8 +562,9 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             
             plt.tight_layout()
             fig.canvas.mpl_connect('button_press_event', onClick)
-            ani = FuncAnimation(fig, update_plot, params['n_windows'], repeat=True, blit=False)
-            ani.save(f"./{params['res_path']}/turning_angles_analysis/turn_ang_wind.mp4", fps = 30, extra_args=['-vcodec', 'libx264'])
+            ani = FuncAnimation(fig, update_plot, params['n_windows'], blit=False)
+            writer = FFMpegWriter(fps = 10, metadata = dict(artist='skandiz'), extra_args=['-vcodec', 'libx264'])
+            ani.save(f"./{params['res_path']}/turning_angles_analysis/turn_ang_wind.mp4", writer = writer, dpi = 300)
             if show_plots:
                 plt.show()
             else:
