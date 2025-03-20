@@ -35,7 +35,13 @@ Ensure you have the following software installed:
    conda env create -f environment.yml
    ```
 
-4. **Download sample data**
+4. **Activate conda environment**
+   Activate the DropleX conda environment:
+   ```bash
+   conda activate DropleX
+   ```
+
+5. **Download sample data**
    Download sample video and trajectories:
    ```bash
    python3 setup.py
