@@ -1,25 +1,20 @@
 import os
 import string
-import json 
+import json
 import joblib
 import multiprocessing
 n_jobs = int(multiprocessing.cpu_count()*0.8)
-#print(f"Running parallel jobs with {n_jobs} cores")
 parallel = joblib.Parallel(n_jobs=n_jobs, backend='loky', verbose=0)
-from scipy.signal import savgol_filter
 from tqdm import tqdm
 import cv2
 
 import matplotlib.cm as cm
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.stats import gaussian_kde
 import trackpy as tp
-import pandas as pd
 from scipy.spatial import KDTree
 import yupi.stats as ys
 from yupi import Trajectory, WindowType, DiffMethod
-from PIL import Image, ImageDraw
 import warnings
 warnings.filterwarnings('ignore', category = RuntimeWarning, message = ".*invalid value encountered in scalar power.*")
 
@@ -90,7 +85,7 @@ def print_recap_analysis(choices, params):
     Print a recap of the user's choices at the end of the analysis.
     """
     print("   --------------------------------------- RECAP ---------------------------------------")
-    print(f"         Video selection:                  {choices.get('video_selection', 'N/A')}")
+    print(f"         Video selection:                  {choices.get('trajectory_name', 'N/A')}")
     print(f"         Order analysis:                   {'Enabled' if choices.get('order') else 'Disabled'}")
     print(f"         Shape analysis:                   {'Enabled' if choices.get('shape') else 'Disabled'}")
     print(f"         TAMSD analysis:                   {'Enabled' if choices.get('tamsd') else 'Disabled'}")
@@ -98,8 +93,13 @@ def print_recap_analysis(choices, params):
     print(f"         Turning angles analysis:          {'Enabled' if choices.get('turning') else 'Disabled'}")
     print(f"         Velocity Autocovariance analysis: {'Enabled' if choices.get('vacf') else 'Disabled'}")
     print(f"         Dimer distribution analysis:      {'Enabled' if choices.get('dimer') else 'Disabled'}")    
+    print(f"         Local EP analysis:                {'Enabled' if choices.get('local_ep') else 'Disabled'}")
+    print(f"         Run or Import                     {'Run' if choices.get('run') else 'Import'}")
+    print(f"         Save plots                        {'True' if choices.get('save') else 'False'}")
+    print(f"         Show plots                        {'True' if choices.get('show') else 'False'}")
+    print(f"         Animated plots                    {'True' if choices.get('animated') else 'False'}")
     print("\n")
-    print(f"         Number of particles: {params['n_particles']}")
+    print(f"         Number of particles: {params['n_particles']}, of which {len(params['blue_particle_idx'])} are blue and {len(params['red_particle_idx'])} are red")
     print(f"         The trajectory has {params['n_frames']} frames at {params['fps']} fps --> {params['n_frames']/params['fps']:.2f} s")
     print(f"         Windowed analysis: windows of {params['window_length']} s and stride of {params['stride_length']} s --> {params['n_windows']} steps")
     print(f"         The evolution is divided in the following stages:")
@@ -118,13 +118,13 @@ def print_recap_analysis(choices, params):
 ##################################################################################################################
 
 
-def get_analysis_parameters(video_selection, config_path="./analysis_config.json"):
+def get_analysis_parameters(trajectory_name, config_path="./analysis_config.json"):
     """
     Get video parameters from the JSON configuration file.
     
     Parameters
     ----------
-    video_selection : str
+    trajectory_name : str
         Name of the video selection.
     config_path : str, optional
         Path to the JSON configuration file (default: "./analysis_config.json").
@@ -145,12 +145,12 @@ def get_analysis_parameters(video_selection, config_path="./analysis_config.json
     except (FileNotFoundError, json.JSONDecodeError) as e:
         raise RuntimeError(f"Error loading video configuration: {e}")
 
-    config = analysis_config.get(video_selection)
+    config = analysis_config.get(trajectory_name)
     if not config:
-        raise ValueError(f"Unknown video selection: {video_selection}")
+        raise ValueError(f"Unknown video selection: {trajectory_name}")
 
     # Return dictionary
-    if video_selection in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+    if trajectory_name in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
         return {
             "system_name": config["system_name"],
             "initial_offset_b": config["initial_offset_b"],
@@ -167,8 +167,7 @@ def get_analysis_parameters(video_selection, config_path="./analysis_config.json
             "video_source_path_red": config["video_source_path_red"],
             "trajectory_path": config["trajectory_path"],
             "stages_seconds": config["stages_seconds"],
-            "single_species": config["single_species"],
-            "crop_verb": config["crop_verb"]
+            "crop_verb": config["crop_verb"],
         }
     else:
         return {
@@ -184,14 +183,14 @@ def get_analysis_parameters(video_selection, config_path="./analysis_config.json
             "video_source_path": config["video_source_path"],
             "trajectory_path": config["trajectory_path"],
             "stages_seconds": config["stages_seconds"],
-            "single_species": config["single_species"],
             "crop_verb": config["crop_verb"]
         }
 
-def get_video_properties(video_selection, video_source_path_blue=None, video_source_path_red=None, video_source_path=None):
+
+def get_video_properties(trajectory_name, video_source_path_blue=None, video_source_path_red=None, video_source_path=None):
     """Retrieves video properties such as resolution, frame count, and FPS."""
     video_data = {}
-    if video_selection in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+    if trajectory_name in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
         video_blue = cv2.VideoCapture(video_source_path_blue)
         video_blue.set(cv2.CAP_PROP_POS_FRAMES, 0)
         video_data['w_blue'] = int(video_blue.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -218,6 +217,7 @@ def get_video_properties(video_selection, video_source_path_blue=None, video_sou
         print(f'Video has {video_data["n_frames_video"]} frames with a resolution of {video_data["w"]}x{video_data["h"]} and a framerate of {video_data["video_fps"]} fps')    
         return video, video_data
 
+
 def create_masks(n_particles, red_particle_idx):
     """Creates a boolean mask for red particles and assigns colors."""
     red_mask = np.zeros(n_particles, dtype=bool)
@@ -225,6 +225,7 @@ def create_masks(n_particles, red_particle_idx):
     colors = np.array(['b'] * n_particles)
     colors[red_particle_idx] = 'r'
     return red_mask, colors
+
 
 def compute_kinematics(trajectories, fps, n_frames, n_particles):
     """Computes droplet velocities and accelerations."""
@@ -243,6 +244,7 @@ def compute_kinematics(trajectories, fps, n_frames, n_particles):
     velocities[:, :, 1] *= -1
     return velocities, accelerations
 
+
 def compute_properties(trajectories, n_frames, n_particles, velocities):
     """Computes droplet orientations, radii, and eccentricities."""
     orientations = velocities / np.linalg.norm(velocities, axis=2).reshape(n_frames, n_particles, 1)
@@ -250,11 +252,12 @@ def compute_properties(trajectories, n_frames, n_particles, velocities):
     eccentricity = trajectories.eccentricity.values.reshape(n_frames, n_particles)
     return orientations, radii, eccentricity
 
+
 def create_directories(params):
     """Creates necessary directories for results and analysis."""
-    params['res_path'] = f"./analysis_results/{params['video_selection']}/results_wind_{params['window_length']}_subsample_{params['subsample_factor']}"
-    params['analysis_data_path'] = f"./analysis_results/{params['video_selection']}/analysis_data_wind_{params['window_length']}_subsample_{params['subsample_factor']}"
-    params['pdf_res_path'] = f"{params['pdf_base_path']}/images/{params['video_selection']}/results_wind_{params['window_length']}_subsample_{params['subsample_factor']}"
+    params['res_path'] = f"./analysis_results/{params['trajectory_name']}/results_wind_{params['window_length']}_subsample_{params['subsample_factor']}"
+    params['analysis_data_path'] = f"./analysis_results/{params['trajectory_name']}/analysis_data_wind_{params['window_length']}_subsample_{params['subsample_factor']}"
+    params['pdf_res_path'] = f"{params['pdf_base_path']}/images/{params['trajectory_name']}/results_wind_{params['window_length']}_subsample_{params['subsample_factor']}"
     
     os.makedirs(params['res_path'], exist_ok = True)
     os.makedirs(params['analysis_data_path'], exist_ok = True)
@@ -266,6 +269,7 @@ def create_directories(params):
         os.makedirs(params['pdf_res_path'] + '/' + path, exist_ok = True)
     
     return params
+
 
 def compute_windowed_analysis(frames, fps, window_length, stride_length, frames_stages):
     """Computes parameters for windowed analysis."""
@@ -279,6 +283,7 @@ def compute_windowed_analysis(frames, fps, window_length, stride_length, frames_
     steps_plot = np.array([find_nearest(startFrames + n_frames_window / 2, frame) for frame in frames_stages])
     
     return startFrames, window_center_sec, endFrames, n_windows, n_stages, steps_plot
+
 
 def generate_plot_styles(n_stages):
     """Generates color styles and labels for plotting."""
@@ -308,10 +313,12 @@ def onClick(event):
         ani.event_source.start()
         anim_running = True
 
+
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
+
 
 def trim_up_to_char(s, char):
     index = s.find(char)
@@ -319,14 +326,32 @@ def trim_up_to_char(s, char):
         return s[:index]
     return s
 
+
 def get_frame(cap, frame, x1, y1, x2, y2, resolution, crop_verb):
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
     ret, image = cap.read()
-    npImage = np.array(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+    if not ret or image is None:
+        print(f"Warning: Could not read frame {frame}. Returning black frame.")
+        return np.zeros((resolution, resolution, 3), dtype=np.uint8)
+
+    try:
+        npImage = np.array(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    except cv2.error as e:
+        print(f"Warning: cvtColor failed on frame {frame}: {e}")
+        return np.zeros((resolution, resolution, 3), dtype=np.uint8)
+
     if crop_verb:
         npImage = npImage[y1:y2, x1:x2]
-    npImage = cv2.resize(npImage, (resolution, resolution))
+
+    try:
+        npImage = cv2.resize(npImage, (resolution, resolution))
+    except cv2.error as e:
+        print(f"Warning: resize failed on frame {frame}: {e}")
+        return np.zeros((resolution, resolution, 3), dtype=np.uint8)
+
     return npImage
+
 
 def get_frame_increased_contrast(cap, frame, x1, y1, x2, y2, w, h, resolution):
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
@@ -343,48 +368,76 @@ def get_frame_increased_contrast(cap, frame, x1, y1, x2, y2, w, h, resolution):
     image = cv2.resize(image, (resolution, resolution))
     return image
 
+
 def get_frame_rgb_circular_crop(video, frame, xmin, ymin, xmax, ymax, resolution):
     video.set(cv2.CAP_PROP_POS_FRAMES, frame)
     ret, image = video.read()
-    image = np.array(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    image = cv2.resize(image, (resolution, resolution))
-    side_length = xmax - xmin
-    center = (xmin + side_length // 2, ymin + side_length // 2)
-    radius = side_length // 2
-    y, x = np.ogrid[:image.shape[0], :image.shape[1]]
-    mask = (x - center[0])**2 + (y - center[1])**2 <= radius**2
-    circular_image = np.full_like(image, 255)  # Start with a white background
-    circular_image[mask] = image[mask]  # Replace circle region with the original image
-    circular_image = circular_image[ymin:ymax, xmin:xmax]
+
+    if not ret or image is None:
+        print(f"Warning: Could not read frame {frame}. Returning white frame.")
+        return np.full((ymax - ymin, xmax - xmin, 3), 255, dtype=np.uint8)
+
+    try:
+        image = np.array(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    except cv2.error as e:
+        print(f"Warning: cvtColor failed on frame {frame}: {e}")
+        return np.full((ymax - ymin, xmax - xmin, 3), 255, dtype=np.uint8)
+
+    try:
+        image = cv2.resize(image, (resolution, resolution))
+    except cv2.error as e:
+        print(f"Warning: resize failed on frame {frame}: {e}")
+        return np.full((ymax - ymin, xmax - xmin, 3), 255, dtype=np.uint8)
+
+    try:
+        side_length = xmax - xmin
+        center = (xmin + side_length // 2, ymin + side_length // 2)
+        radius = side_length // 2
+        y, x = np.ogrid[:image.shape[0], :image.shape[1]]
+        mask = (x - center[0])**2 + (y - center[1])**2 <= radius**2
+        circular_image = np.full_like(image, 255)  # White background
+        circular_image[mask] = image[mask]
+        circular_image = circular_image[ymin:ymax, xmin:xmax]
+    except Exception as e:
+        print(f"Warning: cropping or masking failed on frame {frame}: {e}")
+        return np.full((ymax - ymin, xmax - xmin, 3), 255, dtype=np.uint8)
+
     return circular_image
 
 # 2D Maxwell-Boltzmann distribution
 def MB_2D(v, sigma):
     return v/(sigma**2) * np.exp(-v**2/(2*sigma**2))
 
+
 # Generalized 2D Maxwell-Boltzmann distribution
 def MB_2D_generalized(v, sigma, beta, A):
     return A * v * np.exp(-v**beta/(2*sigma**beta))
+
 
 # Normal distribution
 def normal_distr(x, sigma, mu):
     return 1/(np.sqrt(2*np.pi)*sigma) * np.exp(-0.5*((x-mu)/sigma)**2)
 
+
 # Wrapped lorentzian distribution
 def wrapped_lorentzian_distr(theta, gamma, mu):
     return 1/(2*np.pi) * np.sinh(gamma) / (np.cosh(gamma) - np.cos(theta - mu))
+
 
 # Lorentzian distribution
 def lorentzian_distr(x, gamma, x0):
     return 1/np.pi * gamma / ((x-x0)**2 + gamma**2)
 
+
 # Power Law distribution
 def powerLaw(x, a, k):
     return a*x**k
 
+
 # Exponential distribution
 def exp(t, A, tau):
     return A * np.exp(-t/tau)
+
 
 # Histogram fit
 def fit_hist(y, bin_centers, distribution, p0_, maxfev_):
@@ -394,6 +447,7 @@ def fit_hist(y, bin_centers, distribution, p0_, maxfev_):
     y_fit = distribution(bin_centers, *fit_results[:, 0])
     r2 = 1 - (np.sum((y - y_fit) ** 2) / np.sum((y - np.mean(y)) ** 2))
     return fit_results, r2
+
 
 def get_trajs(trajs, fps, pxDimension):
     yupi_trajs = []
@@ -406,6 +460,7 @@ def get_trajs(trajs, fps, pxDimension):
         
         yupi_trajs.append(temp_traj)
     return yupi_trajs
+
 
 def powerLawFit(f, x, N, yerr, maxfev_):
     if N == 1:
@@ -449,6 +504,7 @@ def get_neighbours_props(pos, r_mean):
                 theta_ij.append(temp_theta)
     return n_of_neighbors, theta_ij
 
+
 # uses the first neighbor as reference angle --> theta_0 = 0 --> hex_order = 1/6 
 def compute_hex_order_frame(pos, r_mean):
     n_particles = pos.shape[0]
@@ -469,10 +525,12 @@ def compute_hex_order_frame(pos, r_mean):
                 hex_order[i] += np.exp(6j*theta_ij)/6
     return np.mean(np.real(hex_order)), np.mean(np.imag(hex_order)), np.mean(n_of_neighbors), np.std(n_of_neighbors)
 
+
 def compute_hex_order(positions, r_mean, description):
     res = parallel(joblib.delayed(compute_hex_order_frame)(positions[frame], r_mean[frame])
                       for frame in tqdm(range(positions.shape[0]), desc = description))
     return np.array(res)
+
 
 def get_imsd(trajs, pxDimension, fps, maxLagtime, fit_range, id_start_fit, id_end_fit):
     imsd = tp.imsd(trajs, mpp = pxDimension, fps = fps, max_lagtime = maxLagtime)
@@ -481,6 +539,7 @@ def get_imsd(trajs, pxDimension, fps, maxLagtime, fit_range, id_start_fit, id_en
     pw_exp = powerLawFit(imsd_to_fit, fit_range, len(trajs.particle.unique()), None, maxfev_ = 10000)
     return imsd, pw_exp
 
+
 def get_emsd(imsd, fit_range, id_start_fit, id_end_fit):
     # compute the EMSD
     MSD = np.array(imsd)
@@ -488,6 +547,7 @@ def get_emsd(imsd, fit_range, id_start_fit, id_end_fit):
     # fit the EMSD in the fit_range
     pw_exp = powerLawFit(MSD[0][id_start_fit:id_end_fit], fit_range, 1, MSD[1][id_start_fit:id_end_fit], maxfev_ = 10000)
     return MSD, pw_exp
+
 
 def get_imsd_windowed(nSteps, startFrames, endFrames, trajs, pxDimension, fps, maxLagtime, fit_range, id_start_fit, id_end_fit, progress_verb):
     if progress_verb:
@@ -543,6 +603,7 @@ def get_emsd_windowed_v2(nSteps, startFrames, endFrames, trajs, pxDimension, fps
         ))
     return np.array(MSD_wind), np.array(pw_exp_wind)
 
+
 # get speed distributions windowed in time
 def speed_wind(trajs_wind, fps, pxDimension, speed_bins, speed_bin_centers):
     speed = ys.speed_ensemble(get_trajs(trajs_wind, fps, pxDimension), step = 1)
@@ -554,6 +615,7 @@ def speed_wind(trajs_wind, fps, pxDimension, speed_bins, speed_bin_centers):
     fit_results_wind, r2_wind = fit_hist(speed_distr, speed_bin_centers, MB_2D, [1.], maxfev_ = 10000)
     fit_results_wind_g, r2_g_wind = fit_hist(speed_distr, speed_bin_centers, MB_2D_generalized, [1., 2., 1.], maxfev_ = 10000)
     return mean_speed, std_speed, speed_distr, fit_results_wind, r2_wind, fit_results_wind_g, r2_g_wind
+
 
 def speed_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, speed_bins, speed_bin_centers, progress_verb, description):
     if progress_verb:    
@@ -580,6 +642,7 @@ def speed_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, spee
     
     return mean_speed, std_speed, speed_distr, fit_results_wind, r2_wind, fit_results_wind_g, r2_g_wind
 
+
 def turn_angl_wind(trajs_wind, fps, pxDimension, turn_angles_bins, turn_angles_bin_centers):
     yupi_trajs = get_trajs(trajs_wind, fps, pxDimension)
     theta = ys.turning_angles_ensemble(yupi_trajs, centered = True)
@@ -587,6 +650,7 @@ def turn_angl_wind(trajs_wind, fps, pxDimension, turn_angles_bins, turn_angles_b
     gaussian_fit_results_wind, gaussian_r2_wind = fit_hist(turn_angles, turn_angles_bin_centers, normal_distr, [1., 0.], maxfev_ = 10000)
     lorentzian_fit_results_wind, lorentzian_r2_wind = fit_hist(turn_angles, turn_angles_bin_centers, wrapped_lorentzian_distr, [1., 0.], maxfev_ = 10000)
     return turn_angles, gaussian_fit_results_wind, gaussian_r2_wind, lorentzian_fit_results_wind, lorentzian_r2_wind 
+
 
 def turning_angles_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimension, turn_angles_bins, turn_angles_bin_centers, progress_verb, description):
     if progress_verb: 
@@ -609,6 +673,7 @@ def turning_angles_windowed(nSteps, startFrames, endFrames, trajs, fps, pxDimens
     lorentzian_r2_wind = np.array(lorentzian_r2_wind)
         
     return turn_angles, gaussian_fit_results_wind, gaussian_r2_wind, lorentzian_fit_results_wind, lorentzian_r2_wind
+
 
 def vacf_yupi_modified(trajs_wind, fps, pxDimension, lag, vacf_time_verb = False):
     yupi_trajs = get_trajs(trajs_wind, fps, pxDimension)
@@ -643,7 +708,8 @@ def vacf_yupi_modified(trajs_wind, fps, pxDimension, lag, vacf_time_verb = False
         vacf_mean = np.mean(_vacf, axis=1)  # Mean
         vacf_std = np.std(_vacf, axis=1)  # Standard deviation
         return vacf_mean, vacf_std
-    
+
+
 def vacf_windowed(trajs, nSteps, startFrames, endFrames, fps, pxDimension, maxLagtime, progress_verb, description):
     if progress_verb:
         vacf_wind, vacf_std_wind = zip(*parallel(
@@ -663,25 +729,35 @@ def vacf_windowed(trajs, nSteps, startFrames, endFrames, fps, pxDimension, maxLa
     
     return vacf_wind, vacf_std_wind
 
-def precompute_neighbour_ids(coords_orig, coords_target):
+
+def precompute_neighbour_ids(coords_orig, coords_target, same_set):
     """Precompute nearest neighbour IDs for all frames."""
-    ids_neighbours_list = np.zeros((len(coords_orig), len(coords_target[0])), dtype=np.int32)
-    for i in range(len(coords_orig)):
-        kd = KDTree(coords_orig[i])
-        ids_neighbours_list[i] = kd.query(coords_target[i], k = 2)[1][:, 1] 
+    ids_neighbours_list = np.zeros((len(coords_target), len(coords_orig[0])), dtype=np.int32)
+    if same_set:
+        for i in range(len(coords_target)):
+            kd = KDTree(coords_target[i])
+            # [1] to get the ids, [:, 1] to get the first nearest neighbour
+            ids_neighbours_list[i] = kd.query(coords_orig[i], k = 2)[1][:, 1]
+
+    else:
+        for i in range(len(coords_target)):
+            kd = KDTree(coords_target[i])
+            # [1] to get the ids, [:, 0] to get the first nearest neighbour
+            ids_neighbours_list[i] = kd.query(coords_orig[i], k = 2)[1][:, 0]
+   
     return ids_neighbours_list
 
-def dimer_distr_frame(coords_orig, coords_taget, id_nearest_neighbour, pxDimension, r_bins, samecolor):
+
+def dimer_distr_frame(coords_orig, coords_target, id_nearest_neighbour, pxDimension, r_bins, same_set):
     """Compute relative positions and generate histogram."""
     
-    # compute angle between neighbors
-    angles = -np.arctan2(coords_taget[id_nearest_neighbour, 1] - coords_orig[:, 1], coords_taget[id_nearest_neighbour, 0] - coords_orig[:, 0])
+    angles = -np.arctan2(coords_target[id_nearest_neighbour, 1] - coords_orig[:, 1], coords_target[id_nearest_neighbour, 0] - coords_orig[:, 0])
     
     # Translate coordinates
-    relative_positions = coords_taget[:, np.newaxis, :] - coords_orig[np.newaxis, :, :]
+    relative_positions = coords_target[:, np.newaxis, :] - coords_orig[np.newaxis, :, :]
     
     # Mask diagonal (droplet relative to itself)
-    if samecolor:
+    if same_set:
         np.fill_diagonal(relative_positions[..., 0], np.nan)
         np.fill_diagonal(relative_positions[..., 1], np.nan)
         
@@ -693,25 +769,27 @@ def dimer_distr_frame(coords_orig, coords_taget, id_nearest_neighbour, pxDimensi
     # Return 2D histogram transposed
     return np.histogram2d(relative_positions[:, 0], relative_positions[:, 1], bins = [r_bins, r_bins], density=True)[0].T
 
-def dimer_distr_batch(ids_neighbours_list, coords_orig, coords_taget, pxDimension, r_bins, samecolor):
+
+def dimer_distr_batch(ids_neighbours_list, coords_orig, coords_target, pxDimension, r_bins, same_set):
     """Compute dimer distributions for a batch of frames."""
     res = np.zeros((len(coords_orig), len(r_bins) - 1, len(r_bins) - 1), dtype=np.float16)
     for frame in range(len(coords_orig)):	
-    	res[frame] = dimer_distr_frame(coords_orig[frame], coords_taget[frame], ids_neighbours_list[frame], pxDimension, r_bins, samecolor)
+        res[frame] = dimer_distr_frame(coords_orig[frame], coords_target[frame], ids_neighbours_list[frame], pxDimension, r_bins, same_set)
     return np.mean(res, axis = 0)
 
-def compute_windowed_dimer_distribution(coords_orig, coords_target, r_bins, pxDimension, samecolor, n_windows, startFrames, endFrames, description):
+
+def compute_windowed_dimer_distribution(coords_orig, coords_target, r_bins, pxDimension, same_set, n_windows, startFrames, endFrames, description):
     """Compute dimer distributions for windowed time frames."""
     
     # Precompute nearest neighbour IDs
-    ids_neighbours_list = precompute_neighbour_ids(coords_orig, coords_target)
+    ids_neighbours_list = precompute_neighbour_ids(coords_orig, coords_target, same_set)
     
     # Compute dimer distributions for each n_frames_window
     dimer_distr_windowed = parallel(joblib.delayed(dimer_distr_batch)(
-        							ids_neighbours_list[startFrames[i]:endFrames[i]],\
-                              		coords_orig[startFrames[i]:endFrames[i]],\
-                              		coords_target[startFrames[i]:endFrames[i]],\
-                              		pxDimension, r_bins, samecolor)
+                                    ids_neighbours_list[startFrames[i]:endFrames[i]],\
+                                      coords_orig[startFrames[i]:endFrames[i]],\
+                                      coords_target[startFrames[i]:endFrames[i]],\
+                                      pxDimension, r_bins, same_set)
                                 for i in tqdm(range(n_windows), desc = description))
     
     return np.array(dimer_distr_windowed)

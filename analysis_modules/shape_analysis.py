@@ -45,15 +45,15 @@ def run_shape_analysis(trajectories, radii, eccentricity, frames, params, save_p
     if len(params['red_particle_idx']) > 0:
         ax.plot(params['window_center_sec'], eccentricity_red_windowed[:, 0], color = 'r', alpha = 0.5)
         ax.fill_between(params['window_center_sec'], eccentricity_red_windowed[:, 0] - 2/np.sqrt(len(params['red_particle_idx'])) * eccentricity_red_windowed[:, 1], eccentricity_red_windowed[:, 0] + 2/np.sqrt(len(params['red_particle_idx'])) * eccentricity_red_windowed[:, 1], color = 'r', alpha = 0.2)
-    ax.set(xlabel = 'Window time [s]', ylabel = r'$\langle \epsilon \rangle$', title = 'Eccentricity evolution')
+    ax.set(xlabel = r'$t_w$ [s]', ylabel = r'$\langle \epsilon \rangle$', title = 'Eccentricity evolution')
     for i, frame in enumerate(params['frames_stages']):
         ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-    ax.set(xlabel = 'Window time [s]', ylabel = 'r [mm]', title = f"Droplets eccentricity of system {params['system_name']}")
-    if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+    ax.set(xlabel = r'$t_w$ [s]', ylabel = 'r [mm]', title = f"Droplets eccentricity of system {params['system_name']}")
+    if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
         ax.set(ylim =(0.1, 0.13),  xlim = (-200, 14000))
-    elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+    elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
         ax.set(ylim = (1.7, 2.5))
-    elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+    elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
         ax.set(ylim = (0.3, .7))
     else:
         ax.set(ylim = (0, 0.5))
@@ -78,12 +78,12 @@ def run_shape_analysis(trajectories, radii, eccentricity, frames, params, save_p
                         mean_radius_r_wind[:, 0] + 2/np.sqrt(len(params['red_particle_idx'])) * mean_radius_r_wind[:, 1], color = 'r', alpha=0.5, facecolor='#FF5A52') 
     for i, frame in enumerate(params['frames_stages']):
         ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-    ax.set(xlabel = 'Window time [s]', ylabel = 'r [mm]', title = f"Droplets radius of system {params['system_name']}")
-    if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+    ax.set(xlabel = r'$t_w$ [s]', ylabel = 'r [mm]', title = f"Droplets radius of system {params['system_name']}")
+    if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
         ax.set(ylim = (1.4, 2), xlim = (-200, 14000))
-    elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+    elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
         ax.set(ylim = (1.7, 2.5))
-    elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+    elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
         ax.set(ylim = (2, 3))
     else:
         ax.set(ylim = (1.2, 2.2))
@@ -129,7 +129,7 @@ def run_shape_analysis(trajectories, radii, eccentricity, frames, params, save_p
             ax.grid()
             for i, frame in enumerate(params['frames_stages']):
                 ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-            ax.set(ylabel = 'K', ylim = (.6, 1), xlabel = 'Window Time [s]', title = f"Minor axis vector - orientation correlation of system {params['system_name']}")
+            ax.set(ylabel = 'K', ylim = (.6, 1), xlabel = r'$t_w$ [s]', title = f"Minor axis vector - orientation correlation of system {params['system_name']}")
             ax.legend(loc = (0.7, 0.5), fontsize = 10)
             if save_plots:
                 plt.savefig(f"./{params['res_path']}/shape_analysis/minor_axis_orientation_correlation.png", bbox_inches='tight', dpi = 300)

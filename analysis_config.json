@@ -15,7 +15,6 @@
         "video_source_path": "./video_input/sample_video.mp4",
         "trajectory_path": "./tracking_results/sample_video/skandiz_model_rgb/trajectories_kalman_rts_0_35999_subsample_factor_1.parquet",
         "stages_seconds": [0, 240, 480, 720, 960],
-        "single_species": false,
         "crop_verb": false
     }
 }

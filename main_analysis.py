@@ -1,9 +1,12 @@
-import os
 import json
+import argparse
 import numpy as np
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from matplotlib.patches import Rectangle
+from matplotlib.transforms import ScaledTranslation
 plt.rcParams.update({
 	'font.size': 15,               # General font size
 	'axes.titlesize': 14,          # Title font size
@@ -12,26 +15,49 @@ plt.rcParams.update({
 	'xtick.labelsize': 10,         # X-axis label size
 	'ytick.labelsize': 10          # Y-axis label size
 })       
-from matplotlib.transforms import ScaledTranslation
 
-from analysis_utils import ask_options, ask_yesno, user_message, print_recap_analysis, get_analysis_parameters, get_video_properties, create_masks, compute_kinematics, compute_properties, compute_windowed_analysis, generate_plot_styles, create_directories, get_frame
+from analysis_utils import ask_options, ask_yesno, user_message, print_recap_analysis, get_analysis_parameters, get_video_properties, create_masks, compute_kinematics, compute_properties, compute_windowed_analysis, generate_plot_styles, create_directories, get_frame, get_frame_rgb_circular_crop, wrapped_lorentzian_distr
 
 def main():
     print("\nWelcome to DropleX, the Python tool for tracking and analysis of active particles from videos! \nLet's start by selecting the trajectory you want to analyze and the type of analyses you want to run. \nPlease follow the instructions below. \n")
 
-    trajectory_names = list(json.load(open("./analysis_config.json", "r")).keys())
-    if len(trajectory_names) == 0:
-        raise AssertionError("No trajectories found in the analysis_config.json file. Please add the paths to the trajectories you want to analyze.")
-    
-    trajectory_option = ask_options("Which trajectory do you want to analyze?", trajectory_names)[0]
+    parser = argparse.ArgumentParser(description = "Run DropleX analysis pipeline")
+    parser.add_argument('--trajectory', type=str, help="Trajectory name")
+    parser.add_argument('--steps', nargs='+', type=int, help="Analysis steps to run: 1=Order, 2=Shape, 3=TAMSD, 4=Speed, 5=Turning angles, 6=VACF, 7=Dimer, 8=All")
+    parser.add_argument('--run', action = 'store_true', help = "Run tracking (vs import data)")
+    parser.add_argument('--save', action = 'store_false')
+    parser.add_argument('--show', action = 'store_false')
+    parser.add_argument('--animated', action = 'store_true')
 
-    analysis_options = ask_options("Which analyses do you want to run? (1, 2, ...)", ["Order parameters analysis", "Shape analysis", "Time Averaged Mean Squared Displacement analysis", "Speed distribution analysis", "Turning angles distribution analysis", "Velocity Autocovariance analysis", "Dimer distribution analysis", "All of them"])
-    run_analysis_option = ask_options("Do you want to run the analysis or import the data?", ["Import the data", "Run the analysis"])[0]
-    run_analysis_verb = run_analysis_option == 2
+    args = parser.parse_args()
+    interactive = args.trajectory is None
     
-    save_plots = ask_yesno("Do you want to save the plots during the analysis?")
-    animated_plot_results = ask_yesno("Do you want to plot animations during the analysis?")
-    show_plots = ask_yesno("Do you want to see the plots during the analysis?")
+    
+    if interactive:
+        # Interactive mode
+        print("\nRunning in interactive mode. \n")
+        trajectory_names = list(json.load(open("./analysis_config.json", "r")).keys())
+        if len(trajectory_names) == 0:
+            raise AssertionError("No trajectories found in the analysis_config.json file. Please add the paths to the trajectories you want to analyze.")
+        trajectory_option = ask_options("Which trajectory do you want to analyze?", trajectory_names)[0]
+        trajectory_name = trajectory_names[trajectory_option - 1]
+        analysis_options = ask_options("Which analyses do you want to run? (1, 2, ...)", ["Order parameters analysis", "Shape analysis", "Time Averaged Mean Squared Displacement analysis", "Speed distribution analysis", "Turning angles distribution analysis", "Velocity Autocovariance analysis", "Dimer distribution analysis", "All of them"])
+        run_analysis_option = ask_options("Do you want to run the analysis or import the data?", ["Import the data", "Run the analysis"])[0]
+        run_analysis_verb = run_analysis_option == 2
+        
+        save_plots = ask_yesno("Do you want to save the plots during the analysis?")
+        show_plots = ask_yesno("Do you want to see the plots during the analysis?")
+        animated_plot_results = ask_yesno("Do you want to plot animations during the analysis?")
+    else:
+        # Non-interactive cluster mode
+        print("\nRunning in non-interactive mode. \n")
+        trajectory_name = args.trajectory
+        analysis_options = args.steps
+        run_analysis_verb = args.run
+        save_plots = args.save
+        show_plots = args.show
+        animated_plot_results = args.animated
+        
     
     ORDER = any(opt in analysis_options for opt in {1, 8})
     SHAPE = any(opt in analysis_options for opt in {2, 8})
@@ -40,9 +66,9 @@ def main():
     TURNING = any(opt in analysis_options for opt in {5, 8})
     VACF = any(opt in analysis_options for opt in {6, 8})
     DIMER = any(opt in analysis_options for opt in {7, 8})
-    
+
     choices = {
-        "video_selection": trajectory_names[trajectory_option - 1],
+        "trajectory_name": trajectory_name,
         "order": ORDER,
         "shape": SHAPE,
         "tamsd": TAMSD,
@@ -57,20 +83,22 @@ def main():
     }
         
     # Load analysis parameters
-    params = get_analysis_parameters(trajectory_names[trajectory_option - 1], "./analysis_config.json")
+    params = get_analysis_parameters(trajectory_name, "./analysis_config.json")
 
-    params['folder_names'] = ['dimer_analysis', 'tamsd_analysis', 'order_analysis', 'shape_analysis', 'speed_analysis', 'turning_angles_analysis', 'vacf_analysis']
+    params['folder_names'] = ['order_analysis', 'shape_analysis', 'tamsd_analysis', 'speed_analysis', 'turning_angles_analysis', 'vacf_analysis', 'dimer_analysis']
     params['dimension_units'] = 'mm'
     params['speed_units'] = 'mm/s'
-    params['video_selection'] = trajectory_names[trajectory_option - 1]
-    params['window_length'] = 100 # [s]
+    params['trajectory_name'] = trajectory_name
+    params['window_length'] = 600 # [s]
     params['stride_length'] = 10 # [s]
     params['fps'] = int(params['video_fps']/params['subsample_factor'])
     params['frames_stages'] = np.array(params['stages_seconds'])*params['fps']
     trajectories = pd.read_parquet(params['trajectory_path'], engine='pyarrow', columns=['x', 'y', 'r', 'eccentricity', 'particle', 'frame', 'class_id'])
-    trajectories.set_index('frame', inplace = True, drop = False)
     # Adjust frame numbering
     if trajectories.frame.min() > 0: trajectories.frame = trajectories.frame - trajectories.frame.min()
+    trajectories = trajectories.loc[trajectories.frame.isin(trajectories.frame.unique()[::params['subsample_factor']])]
+    trajectories['frame'] = (trajectories.frame.values/params['subsample_factor']).astype(int)
+    trajectories.set_index('frame', inplace = True, drop = False)
     frames = trajectories.frame.unique().astype(int)
     params['n_frames'] = len(frames)
 
@@ -81,33 +109,33 @@ def main():
     if params['crop_verb']:
        params['pxDimension'] = params['petri_diameter']/params['resolution'] # [mm/pixel]
     else:
-        if params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             pxDimension_blue = params['petri_diameter']/(params['xmax_b'] - params['xmin_b'])
             pxDimension_red = params['petri_diameter']/(params['xmax_r'] - params['xmin_r'])
             params['pxDimension'] = (pxDimension_blue + pxDimension_red)/2
         else:
             params['pxDimension'] = params['petri_diameter']/(params['xmax'] - params['xmin']) # [mm/pixel]
 
-    print(params['pxDimension'])
     
     params['red_mask'], params['colors'] = create_masks(params['n_particles'], params['red_particle_idx'])
     params['startFrames'], params['window_center_sec'], params['endFrames'], params['n_windows'], params['n_stages'], params['steps_plot'] = compute_windowed_analysis(frames, params['fps'], params['window_length'], params['stride_length'], params['frames_stages'])
     params['shades_of_blue'], params['default_kwargs_blue'], params['shades_of_red'], params['default_kwargs_red'], params['letter_labels'], params['stages_shades'] = generate_plot_styles(params['n_stages'])
 
-    if params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-        video_blue, video_red, video_data = get_video_properties(params['video_selection'], video_source_path_blue = params['video_source_path_blue'], video_source_path_red = params['video_source_path_blue'])
+    if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        video_blue, video_red, video_data = get_video_properties(params['trajectory_name'], video_source_path_blue = params['video_source_path_blue'], video_source_path_red = params['video_source_path_blue'])
     else:
-        video, video_data = get_video_properties(params['video_selection'], video_source_path = params['video_source_path'])
+        video, video_data = get_video_properties(params['trajectory_name'], video_source_path = params['video_source_path'])
         
     params = create_directories(params)
     
     print_recap_analysis(choices, params)    
-    proceed = ask_yesno("Do you want to proceed with these choices?")
-    if not proceed:
-        user_message("Analysis aborted. Please restart the program.", "error")
-        exit()
-    else:
-        user_message("Ok, let's go and proceed with the analysis.", "success")    
+    if interactive:
+        proceed = ask_yesno("Do you want to proceed with these choices?")
+        if not proceed:
+            user_message("Analysis aborted. Please restart the program.", "error")
+            exit()
+        else:
+            user_message("Ok, let's go and proceed with the analysis.", "success")  
     
     start = time.time()
     positions = trajectories.loc[:, ['x', 'y']].values.reshape(params['n_frames'], params['n_particles'], 2)
@@ -115,7 +143,7 @@ def main():
     orientations, radii, eccentricity = compute_properties(trajectories, params['n_frames'], params['n_particles'], velocities)
     
     if 1:
-        if params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             fig, axs = plt.subplots(2, 5, figsize = (15, 5), sharex=True, sharey=True)
             for i in range(len(params['steps_plot'])):
                 #hours, remainder = divmod(int(params['frames_stages'][i]/params['fps']), 3600)
@@ -283,7 +311,7 @@ def main():
         user_message("Running Order parameters analysis...", "info")
         from analysis_modules.order_analysis import run_order_analysis
         velocity_polarization, hex_order = run_order_analysis(orientations, positions, radii, frames, params, video, save_plots, show_plots)
-        velocity_pol_b, velocity_pol_r = velocity_polarization
+        velocity_pol_b, velocity_pol_r, velocity_pol_full = velocity_polarization
         hex_order_real_wind_b, hex_order_real_wind_r, hex_order_real_wind = hex_order
 
     if SHAPE:
@@ -304,7 +332,10 @@ def main():
         print("\n")
         user_message("Running Speed distribution analysis...", "info")
         from analysis_modules.speed_analysis import run_speed_analysis
-        run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysis_verb, animated_plot_results)
+        mean_speed = run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysis_verb, animated_plot_results)
+        mean_speed_b, mean_speed_r, mean_speed_all = mean_speed
+    else:
+        mean_speed_b, mean_speed_r, mean_speed_all = None, None
     
     if TURNING:
         print("\n")
@@ -325,9 +356,10 @@ def main():
         print("\n")
         user_message("Running Dimer distribution analysis...", "info")
         from analysis_modules.dimer_analysis import run_dimer_analysis
-        dimer_distr_windowed, rbins, v_max = run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_analysis_verb, animated_plot_results)
+        dimer_distr_windowed, r_bins, v_max = run_dimer_analysis(trajectories, radii, params, show_plots, save_plots, run_analysis_verb, animated_plot_results)
         dimer_distr_windowed_bb, dimer_distr_windowed_rr, dimer_distr_windowed_br, dimer_distr_windowed_rb = dimer_distr_windowed
-        
+
+    
     end = time.time()
     minutes = int((end - start) // 60)
     user_message(f"Analysis completed in {minutes} min", "succes")

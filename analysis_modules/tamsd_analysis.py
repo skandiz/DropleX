@@ -18,7 +18,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
     print("    Global TAMSD analysis...")
     
     IMSD_wind = None
-    maxLagtime = 90*params['fps'] # maximum lagtime to be considered in the tamsd analysis, 300 seconds
+    maxLagtime = 300*params['fps'] # maximum lagtime to be considered in the tamsd analysis, 300 seconds
     x_diffusive = np.linspace(10, maxLagtime/params['fps'], int((maxLagtime/params['fps'] + 1/params['fps'] - 10)*params['fps']))
     x_ballistic = np.linspace(1/params['fps'], 1, int((1-1/params['fps'])*params['fps'])+1)
 
@@ -48,7 +48,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
         ax = fig.add_subplot(gs[0, :])
         for i in range(params['n_particles']):
             ax.plot(imsd.index, imsd.values[:, i], color = params['colors'][i], linewidth = 0.5)
-        ax.set(xscale='log', yscale = 'log', xlabel = 'lag time [s]', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', title = 'IMSD')
+        ax.set(xscale='log', yscale = 'log', xlabel = r'$\tau$ [s]', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', title = 'IMSD')
         ax.grid(linewidth = 0.2)
 
         ax1 = fig.add_subplot(gs[1, 0])
@@ -137,7 +137,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                 
     if 1:
         gs = gridspec.GridSpec(2, 10)
-        fig = plt.figure(figsize = (18, 8))
+        fig = plt.figure(figsize = (18, 6))
         i, step = 0, params['steps_plot'][0]
         ax1 = fig.add_subplot(gs[0, :2])
         if len(params['blue_particle_idx']) > 0:
@@ -149,7 +149,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax1.fill_between(np.arange(1, maxLagtime + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                             EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
         ax1.grid(linewidth = 0.2)
-        ax1.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]')
+        ax1.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]')
         ax1.legend(fontsize = 10)
         i, step = 1, params['steps_plot'][1]
         ax2 = fig.add_subplot(gs[0, 2:4], sharex = ax1, sharey = ax1)
@@ -162,7 +162,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax2.fill_between(np.arange(1, maxLagtime + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                             EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
         ax2.grid(linewidth = 0.2)
-        ax2.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+        ax2.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
         plt.setp(ax2.get_yticklabels(), visible=False)
         i, step = 2, params['steps_plot'][2]
         ax3 = fig.add_subplot(gs[0, 4:6], sharex = ax1, sharey = ax1)
@@ -175,7 +175,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax3.fill_between(np.arange(1, maxLagtime + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                             EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
         ax3.grid(linewidth = 0.2)
-        ax3.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+        ax3.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
         plt.setp(ax3.get_yticklabels(), visible=False)
         i, step = 3, params['steps_plot'][3]
         ax4 = fig.add_subplot(gs[0, 6:8], sharex = ax1, sharey = ax1)
@@ -188,7 +188,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax4.fill_between(np.arange(1, maxLagtime + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                             EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
         ax4.grid(linewidth = 0.2)
-        ax4.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+        ax4.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
         plt.setp(ax4.get_yticklabels(), visible=False)
         i, step = 4, params['steps_plot'][4]
         ax5 = fig.add_subplot(gs[0, 8:10], sharex = ax1, sharey = ax1)
@@ -201,7 +201,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax5.fill_between(np.arange(1, maxLagtime + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                             EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
         ax5.grid(linewidth = 0.2)
-        ax5.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+        ax5.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
         plt.setp(ax5.get_yticklabels(), visible=False)
         ax6 = fig.add_subplot(gs[1, :5])
         if len(params['blue_particle_idx']) > 0:
@@ -209,7 +209,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
         if len(params['red_particle_idx']) > 0:
             ax6.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 1], 'r-', label = 'Red droplets ')
         ax6.plot(params['window_center_sec'], np.ones(params['n_windows']), 'k-')
-        ax6.set(xlabel = 'Window time [s]', ylabel = r'$\alpha$', ylim = (-0.1, 2.1), title = 'Scaling exponents')
+        ax6.set(xlabel = r'$t_w$ [s]', ylabel = r'$\alpha$', ylim = (-0.1, 2.1), title = 'Scaling exponents')
         ax6.legend(loc = (0.09, 0.7), fontsize = 10)
         ax6.grid(linewidth = 0.2)
         for i, frame in enumerate(params['frames_stages']):
@@ -221,16 +221,16 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax7.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 0], 'r-')
         for i, frame in enumerate(params['frames_stages']):
             ax7.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax7.set(ylim=(-1, 30), xlim = (-200, 14000))
-        elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+        elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
             ax7.set(ylim=(-1, 200))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax7.set(ylim=(0, 1800))
         else:
             ax7.set(ylim=(-1, 10))
         ax7.legend(loc = (0.15, 0.4), fontsize = 10)
-        ax7.set(xlabel = 'Window time [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$', title = 'Generalized diffusion coefficients')
+        ax7.set(xlabel = r'$t_w$ [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$', title = 'Generalized diffusion coefficients')
         ax7.grid(linewidth = 0.2)
         ax1.text(0.0, 1.0, 'a)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax2.text(0.0, 1.0, 'b)', transform=(ax2.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
@@ -239,7 +239,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
         ax5.text(0.0, 1.0, 'e)', transform=(ax5.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax6.text(0.0, 1.0, 'f)', transform=(ax6.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax7.text(0.0, 1.0, 'g)', transform=(ax7.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        plt.suptitle(f"EMSD of system {params['system_name']}")
+        #plt.suptitle(f"EMSD of system {params['system_name']}")
         plt.tight_layout(w_pad = 0.01)
         if save_plots:
             plt.savefig(f"./{params['res_path']}/tamsd_analysis/EMSD_wind_stages_{params['n_stages']}_v2.png", bbox_inches='tight')
@@ -260,10 +260,10 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                 axs[i].fill_between(np.arange(1, maxLagtime + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                                     EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
             axs[i].grid(linewidth = 0.2)
-            axs[i].set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+            axs[i].set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
             axs[i].text(0.0, 1.0, f"{params['letter_labels'][i]}", transform=(axs[i].transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         axs[0].set(ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]')
-        plt.suptitle(f"EMSD of system {params['system_name']}")
+        #plt.suptitle(f"EMSD of system {params['system_name']}")
         plt.tight_layout()
         if save_plots:
             plt.savefig(f"./{params['res_path']}/tamsd_analysis/EMSD_wind_stages_{params['n_stages']}.png", bbox_inches='tight')
@@ -291,16 +291,16 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax1.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 0], 'r-')
         for i, frame in enumerate(params['frames_stages']):
             ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax1.set(ylim=(-1, 30), xlim = (-200, 14000))
-        elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+        elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
             ax1.set(ylim=(-1, 200))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax1.set(ylim=(0, 1800))
         else:
             ax1.set(ylim=(-1, 10))
         ax1.legend(loc = (0.15, 0.4), fontsize = 10)
-        ax1.set(xlabel = 'Window time [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$')
+        ax1.set(xlabel = r'$t_w$ [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$')
         ax1.grid(linewidth = 0.2)
         ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
@@ -321,23 +321,23 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
             ax.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 1], 'r-', label = 'Red droplets ')
             ax1.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 0], 'r-')
         ax.plot(params['window_center_sec'], np.ones(params['n_windows']), 'k-')
-        ax.set(xlabel = 'Window time [s]', ylabel = r'$\alpha$', ylim = (-0.1, 2.1), title = 'Scaling exponents')
+        ax.set(xlabel = r'$t_w$ [s]', ylabel = r'$\alpha$', ylim = (-0.1, 2.1), title = 'Scaling exponents')
         ax.legend(loc = (0.09, 0.7), fontsize = 10)
         ax.grid(linewidth = 0.2)
         for i, frame in enumerate(params['frames_stages']):
             ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5)
         for i, frame in enumerate(params['frames_stages']):
             ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax1.set(ylim=(-1, 30), xlim = (-200, 14000))
-        elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+        elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
             ax1.set(ylim=(-1, 200))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax1.set(ylim=(0, 1800))
         else:
             ax1.set(ylim=(-1, 10))
         ax1.legend(loc = (0.5, 0.3), fontsize = 10)
-        ax1.set(xlabel = 'Window time [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$', title = 'Generalized diffusion coefficients')
+        ax1.set(xlabel = r'$t_w$ [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$', title = 'Generalized diffusion coefficients')
         ax1.grid(linewidth = 0.2)
         ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
@@ -370,7 +370,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
 
             def update_plot(step):
                 # update title
-                title.set_text(f"EMSD of system {params['system_name']} at " + r'$T_w = $' + f"{params['startFrames'][step]/params['fps'] + params['window_length']/2} s")
+                title.set_text(f"EMSD of system {params['system_name']} at " + r'$t_w = $' + f"{params['startFrames'][step]/params['fps'] + params['window_length']/2} s")
                 line.set_data(params['startFrames'][:step]/params['fps'] + params['window_length']/2, np.ones(step)) 
                 ax1.set_xlim(frames[0]/params['fps'], params['startFrames'][step]/params['fps'] + params['window_length']/2 + 100)
                 ax2.set_xlim(frames[0]/params['fps'], params['startFrames'][step]/params['fps'] + params['window_length']/2 + 100)
@@ -411,7 +411,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                 elif len(params['blue_particle_idx']) == 0 & len(params['red_particle_idx']) > 0:
                     return msd_plot_r, fill_graph_r, line, line_r, line_r1,
 
-            title = ax.set_title(f"EMSD of system {params['system_name']} at " + r'$T_w = $' + f"{params['startFrames'][0]/params['fps'] + params['window_length']/2} s")
+            title = ax.set_title(f"EMSD of system {params['system_name']} at " + r'$t_w = $' + f"{params['startFrames'][0]/params['fps'] + params['window_length']/2} s")
             line, = ax1.plot(params['startFrames'][0]/params['fps'] + params['window_length']/2, 1, 'k-')
             
             if len(params['blue_particle_idx']) > 0:
@@ -426,22 +426,22 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                 line_r, = ax1.plot(params['startFrames'][0]/params['fps'] + params['window_length']/2, pw_exp_wind_r[0, 0, 1], 'r-', alpha = 0.5, label = 'Red droplets')
                 line_r1, = ax2.plot(params['startFrames'][0]/params['fps'] + params['window_length']/2, pw_exp_wind_r[0, 0, 0], 'r-', alpha = 0.5, label = 'Red droplets')
 
-            if params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+            if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
                 ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-2), 10**(4)))
-                ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 1800), title = 'Generalized diffusion coefficients')
-            elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+                ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 1800), title = 'Generalized diffusion coefficients')
+            elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
                 ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 200), title = 'Generalized diffusion coefficients')
-            elif params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+                ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 200), title = 'Generalized diffusion coefficients')
+            elif params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
                 ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 30), title = 'Generalized diffusion coefficients')
-            elif params['video_selection'] in ['25b25r_lowconc_2']:
+                ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 30), title = 'Generalized diffusion coefficients')
+            elif params['trajectory_name'] in ['25b25r_lowconc_2']:
                 ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 20), title = 'Generalized diffusion coefficients')
+                ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 20), title = 'Generalized diffusion coefficients')
             else:
                 ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 10), title = 'Generalized diffusion coefficients')
-            ax1.set(xlabel = 'Window time [s]', ylabel = r'$\alpha$', ylim = (0, 2), title = 'Scaling exponents')
+                ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 10), title = 'Generalized diffusion coefficients')
+            ax1.set(xlabel = r'$t_w$ [s]', ylabel = r'$\alpha$', ylim = (0, 2), title = 'Scaling exponents')
 
             ax.legend(fontsize = 10)
             ax.grid(linewidth = 0.2)
@@ -473,7 +473,7 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                         msd_plot[i].set_ydata(np.array(MSD_wind[step].iloc[:, i]))
                         pw_exp_plot[i].set_data(params['startFrames'][:step]/params['fps'] + params['window_length']/2, pw_exp_wind[:step, i, 0, 1])
                         gen_diff_coeff_plot[i].set_data(params['startFrames'][:step]/params['fps'] + params['window_length']/2, pw_exp_wind[:step, i, 0, 0])
-                    title.set_text(f"IMSD of system {params['system_name']} at " + r'$T_w = $' + f"{params['startFrames'][step]/params['fps'] + params['window_length']/2} s")
+                    title.set_text(f"IMSD of system {params['system_name']} at " + r'$t_w = $' + f"{params['startFrames'][step]/params['fps'] + params['window_length']/2} s")
                     ax1.set_xlim(frames[0]/params['fps'], params['startFrames'][step]/params['fps'] + params['window_length']/2 + 100)
                     ax2.set_xlim(frames[0]/params['fps'], params['startFrames'][step]/params['fps'] + params['window_length']/2 + 100)
                     return msd_plot, pw_exp_plot, gen_diff_coeff_plot,
@@ -484,23 +484,23 @@ def run_tamsd_analysis(trajectories, frames, params, show_plots, save_plots, run
                     msd_plot.append(ax.plot(MSD_wind[i].index, np.array(MSD_wind[0].iloc[:, i]), color=params['colors'][i], alpha = 0.3)[0])
                     pw_exp_plot.append(ax1.plot(params['startFrames'][0]/params['fps'] + params['window_length']/2, pw_exp_wind[0, i, 0, 1], color=params['colors'][i], alpha = 0.3)[0])
                     gen_diff_coeff_plot.append(ax2.plot(params['startFrames'][0]/params['fps'] + params['window_length']/2, pw_exp_wind[0, i, 0, 0], color=params['colors'][i], alpha = 0.3)[0])
-                title = ax.set_title(f"IMSD of system {params['system_name']} at " + r'$T_w = $' + f"{params['startFrames'][0]/params['fps'] + params['window_length']/2} s")
-                if params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+                title = ax.set_title(f"IMSD of system {params['system_name']} at " + r'$t_w = $' + f"{params['startFrames'][0]/params['fps'] + params['window_length']/2} s")
+                if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
                     ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-2), 10**(4)))
-                    ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 1800), title = 'Generalized diffusion coefficients')
-                elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+                    ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 1800), title = 'Generalized diffusion coefficients')
+                elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
                     ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                    ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 200), title = 'Generalized diffusion coefficients')
-                elif params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+                    ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 200), title = 'Generalized diffusion coefficients')
+                elif params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
                     ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                    ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 30), title = 'Generalized diffusion coefficients')
-                elif params['video_selection'] in ['25b25r_lowconc_2']:
+                    ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 30), title = 'Generalized diffusion coefficients')
+                elif params['trajectory_name'] in ['25b25r_lowconc_2']:
                     ax.set(xscale = 'log', yscale = 'log', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]', xlabel = 'lag time $t$ [s]', ylim=(10**(-6), 10**(3)))
-                    ax2.set(xlabel = 'Window time [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 20), title = 'Generalized diffusion coefficients')
+                    ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$K{_\alpha} \; [mm^2/s^\alpha]$', ylim = (0, 20), title = 'Generalized diffusion coefficients')
                 ax.grid(linewidth = 0.2)   
                 ax1.grid(linewidth = 0.2)
                 ax2.grid(linewidth = 0.2)
-                ax1.set(xlabel = 'Window time [s]', ylabel = r'$\alpha$', ylim = (0, 2), title = 'Scaling exponents')
+                ax1.set(xlabel = r'$t_w$ [s]', ylabel = r'$\alpha$', ylim = (0, 2), title = 'Scaling exponents')
                 ax1.set_xlim(frames[0]/params['fps'], params['startFrames'][0]/params['fps'] + params['window_length']/2 + 100)
                 ax2.set_xlim(frames[0]/params['fps'], params['startFrames'][0]/params['fps'] + params['window_length']/2 + 100)
                 plt.tight_layout()

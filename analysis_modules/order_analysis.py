@@ -21,24 +21,34 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             end = params['endFrames'][step]
             velocity_pol_b[step] = np.mean(np.linalg.norm(np.mean(orientations[start:end, ~params['red_mask']], axis = 1), axis = 1))
 
-        res_blue = compute_hex_order(positions[:, ~params['red_mask']], np.mean(radii[:, ~params['red_mask']], axis = 1), description = "    Computing blue droplets hexatic order        ")
-        hex_order_real_b, hex_order_img_b, n_of_neighbors_b, n_of_neighbors_b_std = res_blue[:, 0], res_blue[:, 1], res_blue[:, 2], res_blue[:, 3]
-        hex_order_real_wind_b, hex_order_img_wind_b, n_of_neighbors_wind_b = np.zeros((params['n_windows'], 2)), np.zeros((params['n_windows'], 2)), np.zeros(params['n_windows'])
-        
-        for i in range(params['n_windows']):
-            hex_order_real_wind_b[i, 0] = np.nanmean(hex_order_real_b[params['startFrames'][i]:params['endFrames'][i]])
-            hex_order_real_wind_b[i, 1] = np.nanstd(hex_order_real_b[params['startFrames'][i]:params['endFrames'][i]]) * 1 / np.sqrt(len(params['blue_particle_idx']))
-            hex_order_img_wind_b[i, 0] = np.nanmean(hex_order_img_b[params['startFrames'][i]:params['endFrames'][i]])
-            hex_order_img_wind_b[i, 1] = np.nanstd(hex_order_img_b[params['startFrames'][i]:params['endFrames'][i]]) * 1 / np.sqrt(len(params['blue_particle_idx']))
-            n_of_neighbors_wind_b[i] = np.mean(n_of_neighbors_b[params['startFrames'][i]:params['endFrames'][i]])
-
     if len(params['red_particle_idx']) > 0:
         velocity_pol_r = np.zeros(params['n_windows'])
         for step in tqdm(range(params['n_windows']), desc = "    Computing red droplets velocity polarization "):
             start = params['startFrames'][step]
             end = params['endFrames'][step]
             velocity_pol_r[step] = np.mean(np.linalg.norm(np.mean(orientations[start:end, params['red_mask']], axis = 1), axis = 1))
-
+            
+    if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
+        velocity_pol_full = np.zeros(params['n_windows'])
+        for step in tqdm(range(params['n_windows']), desc = "    Computing all droplets velocity polarization "):
+            start = params['startFrames'][step]
+            end = params['endFrames'][step]
+            velocity_pol_full[step] = np.mean(np.linalg.norm(np.mean(orientations[start:end], axis = 1), axis = 1))
+        
+        
+    if len(params['blue_particle_idx']) > 0:
+        res_blue = compute_hex_order(positions[:, ~params['red_mask']], np.mean(radii[:, ~params['red_mask']], axis = 1), description = "    Computing blue droplets hexatic order        ")
+        hex_order_real_b, hex_order_img_b, n_of_neighbors_b, n_of_neighbors_b_std = res_blue[:, 0], res_blue[:, 1], res_blue[:, 2], res_blue[:, 3]
+        hex_order_real_wind_b, hex_order_img_wind_b, n_of_neighbors_wind_b = np.zeros((params['n_windows'], 2)), np.zeros((params['n_windows'], 2)), np.zeros(params['n_windows'])
+    
+        for i in range(params['n_windows']):
+            hex_order_real_wind_b[i, 0] = np.nanmean(hex_order_real_b[params['startFrames'][i]:params['endFrames'][i]])
+            hex_order_real_wind_b[i, 1] = np.nanstd(hex_order_real_b[params['startFrames'][i]:params['endFrames'][i]]) * 1 / np.sqrt(len(params['blue_particle_idx']))
+            hex_order_img_wind_b[i, 0] = np.nanmean(hex_order_img_b[params['startFrames'][i]:params['endFrames'][i]])
+            hex_order_img_wind_b[i, 1] = np.nanstd(hex_order_img_b[params['startFrames'][i]:params['endFrames'][i]]) * 1 / np.sqrt(len(params['blue_particle_idx']))
+            n_of_neighbors_wind_b[i] = np.mean(n_of_neighbors_b[params['startFrames'][i]:params['endFrames'][i]])
+        
+    if len(params['red_particle_idx']) > 0:
         res_red = compute_hex_order(positions[:, params['red_mask']], np.mean(radii[:, params['red_mask']], axis = 1), description = "    Computing red droplets hexatic order         ")
         hex_order_real_r, hex_order_img_r, n_of_neighbors_r, n_of_neighbors_r_std = res_red[:, 0], res_red[:, 1], res_red[:, 2], res_red[:, 3]
         hex_order_real_wind_r, hex_order_img_wind_r, n_of_neighbors_wind_r = np.zeros((params['n_windows'], 2)), np.zeros((params['n_windows'], 2)), np.zeros(params['n_windows'])
@@ -61,7 +71,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             hex_order_img_wind[i, 0] = np.nanmean(hex_order_img[params['startFrames'][i]:params['endFrames'][i]])
             hex_order_img_wind[i, 1] = np.nanstd(hex_order_img[params['startFrames'][i]:params['endFrames'][i]]) * 1 / np.sqrt(params['n_particles'])
             n_of_neighbors_wind[i] = np.mean(n_of_neighbors[params['startFrames'][i]:params['endFrames'][i]])
-            
+   
     params['stages_colors'] = np.zeros(params['n_windows'])
     for i in range(params['n_windows']):
         for j in range(params['n_stages']):
@@ -75,12 +85,14 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax.plot(params['window_center_sec'], velocity_pol_b, "-b")
         if len(params['red_particle_idx']) > 0:
             ax.plot(params['window_center_sec'], velocity_pol_r, "-r")
+        if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
+            ax.plot(params['window_center_sec'], velocity_pol_full, "-k")
         for i, frame in enumerate(params['frames_stages']):
             ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-        ax.set(ylabel = r'$\Phi$', ylim = (0, 1), xlabel = 'Window Time [s]', title = f"Velocity polarization of system {params['system_name']}")
+        ax.set(ylabel = r'$\Phi$', ylim = (0, 1), xlabel = r'$t_w$ [s]', title = f"Velocity polarization of system {params['system_name']}")
         ax.grid()
         ax.legend(loc = (0.1, 0.5), fontsize = 10)
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax.set(xlim = (-200, 14000))
         if save_plots:
             plt.savefig(f"./{params['res_path']}/order_analysis/velocity_polarization.png", bbox_inches="tight")
@@ -114,7 +126,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
 
         ax.set(ylabel = 'Real part', ylim = (-0.1, 1.1), title = f"Hexatic order parameter -- {params['system_name']}")
         ax1.set( ylabel = 'Imaginary part', ylim = (-0.5, 0.5))
-        ax2.set(xlabel = 'Window time [s]', ylabel = 'N of neighbors', ylim = (0, 6))
+        ax2.set(xlabel = r'$t_w$ [s]', ylabel = 'N of neighbors', ylim = (0, 6))
         for i, frame in enumerate(params['frames_stages']):
             ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
             ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
@@ -123,7 +135,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
         ax1.grid(linewidth = 0.5)
         ax2.grid(linewidth = 0.5)
         ax.legend()
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax2.set(xlim = (-200, 14000))
         plt.tight_layout()
         if save_plots:
@@ -174,7 +186,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
             ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
             ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-            plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
+            #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
             plt.tight_layout()
             if save_plots:
                 plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_blue.png", bbox_inches="tight")
@@ -221,7 +233,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
             ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
             ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-            plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
+            #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
             plt.tight_layout()
             if save_plots:
                 plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_red.png", bbox_inches="tight")
@@ -265,7 +277,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
             ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
             ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-            plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
+            #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
             plt.tight_layout()
             if save_plots:
                 plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_full.png", bbox_inches="tight")
@@ -287,6 +299,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax1.fill_between(params['window_center_sec'], hex_order_real_wind_r[:, 0] - 2*hex_order_real_wind_r[:, 1], hex_order_real_wind_r[:, 0] + 2*hex_order_real_wind_r[:, 1], color = "r", alpha = 0.3)
         
         if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
+            ax.plot(params['window_center_sec'], velocity_pol_full, '-k')
             ax1.plot(params['window_center_sec'], hex_order_real_wind[:, 0], "k", label = "All")
             ax1.fill_between(params['window_center_sec'], hex_order_real_wind[:, 0] - 2*hex_order_real_wind[:, 1], hex_order_real_wind[:, 0] + 2*hex_order_real_wind[:, 1], color = "k", alpha = 0.3)
     
@@ -295,12 +308,12 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5)
             
         ax.set(ylabel = r'$\Phi$', ylim = (0, 1), title = f"Dynamical and structural order of system {params['system_name']}")
-        ax1.set(ylabel = r'$\langle Re(\phi_6) \rangle$', xlabel = 'Window time [s]', ylim = (-0.1, 1.1))
+        ax1.set(ylabel = r'$\phi_6$', xlabel = r'$t_w$ [s]', ylim = (-0.1, 1.1))
         ax.grid()
         ax1.grid()
         ax.legend(loc = (0.1, 0.5), fontsize = 10)
         ax1.legend(loc = (0.1, 0.5), fontsize = 10)
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax.set(xlim = (-200, 14000))
         plt.tight_layout()
         if save_plots:
@@ -312,9 +325,9 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             plt.close()
             
     if (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) > 0):
-        return (velocity_pol_b, velocity_pol_r), (hex_order_real_wind_b, hex_order_real_wind_r, hex_order_real_wind)
+        return (velocity_pol_b, velocity_pol_r, velocity_pol_full), (hex_order_real_wind_b, hex_order_real_wind_r, hex_order_real_wind)
     elif (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) == 0):
-        return (velocity_pol_b, None), (hex_order_real_wind_b, None, None)
+        return (velocity_pol_b, None, None), (hex_order_real_wind_b, None, None)
     elif (len(params['blue_particle_idx']) == 0) & (len(params['red_particle_idx']) > 0):
-        return (None, velocity_pol_r), (None, hex_order_real_wind_r, None)
+        return (None, velocity_pol_r, None), (None, hex_order_real_wind_r, None)
     

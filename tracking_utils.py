@@ -1,6 +1,7 @@
 import os
 import re 
 import json
+import contextlib
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
@@ -15,12 +16,30 @@ import random
 from csbdeep.utils import normalize
 import skimage
 import trackpy as tp
-from filterpy.common import Saver
 from filterpy.kalman import MerweScaledSigmaPoints, UnscentedKalmanFilter
 import joblib
 import multiprocessing
+import threading
 n_jobs = int(multiprocessing.cpu_count()*0.8)
-parallel = joblib.Parallel(n_jobs=n_jobs, backend='threading', verbose=0)
+parallel = joblib.Parallel(n_jobs=n_jobs, backend='loky', verbose=0)
+
+
+@contextlib.contextmanager
+def tqdm_joblib(tqdm_object):
+    """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+    class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
+        def __call__(self, *args, **kwargs):
+            tqdm_object.update(n=self.batch_size)
+            return super().__call__(*args, **kwargs)
+
+    old_batch_callback = joblib.parallel.BatchCompletionCallBack
+    joblib.parallel.BatchCompletionCallBack = TqdmBatchCompletionCallback
+    try:
+        yield tqdm_object
+    finally:
+        joblib.parallel.BatchCompletionCallBack = old_batch_callback
+        tqdm_object.close()
+
 
 def user_message(message, message_type):
     """
@@ -80,22 +99,23 @@ def ask_yesno(prompt):
             user_message("Invalid input. Please respond with 'yes' or 'no'.", "error")
 
 
-def print_recap_tracking(choices, model_name, resolution, interp_method):
+def print_recap_tracking(choices):
     """
     Print a recap of the user's choices at the end of the analysis.
     """
     print("   --------------------------------------- RECAP ---------------------------------------")
     print(f"         Video selection:                  {choices.get('video_selection', 'N/A')}")
-    print(f"         Model name:                       {model_name}")
-    print(f"         Resolution:                       {resolution}x{resolution} px")      
+    print(f"         Model name:                       {choices.get('model_name')}")
+    
     print(f"         Test:                             {'Enabled' if choices.get('test') else 'Disabled'}")
     print(f"         detection:                        {'Enabled' if choices.get('detect') else 'Disabled'}")
     print(f"         linking:                          {'Enabled' if choices.get('link') else 'Disabled'}")
     print(f"         Interpolation:                    {'Enabled' if choices.get('interpolation') else 'Disabled'}")
-    print(f"         Interpolation method:             {interp_method}")
+    print(f"         Interpolation method:             {choices.get('interp_method')}")
     print(f"         Kalman filter & RTS smoother:     {'Enabled' if choices.get('kalman') else 'Disabled'}")
 
     print("\n")
+    print(f"         Run mode                          {'Run' if choices.get('run') else 'Import'}")
     print(f"         Save plots:                       {'Enabled' if choices.get('save') else 'Disabled'}")
     print(f"         Show plots:                       {'Enabled' if choices.get('show') else 'Disabled'}") 
     print(f"         Animated plots:                   {'Enabled' if choices.get('animated') else 'Disabled'}")
@@ -154,7 +174,6 @@ def get_video_parameters(video_selection, config_path="./tracking_config.json"):
         "video_source_path": config["video_source_path"],
         "crop_verb": config["crop_verb"]
     }
-
 
 
 def get_n_errors(df, n_instances, frames):
@@ -256,6 +275,31 @@ def concat_dataframes(path, analysis_frames):
     # Save the concatenated dataframe
     full_df.to_parquet(f"{path}raw_detection_{analysis_frames[0]}_{analysis_frames[-1]}.parquet")
     return 0
+
+def find_and_import_file(directory, root, a, b):
+    # Regular expression to match the pattern raw_detection_x_y
+    pattern = re.compile(rf'{re.escape(root)}_(\d+)_(\d+)\.parquet')
+    
+    # Iterate over files in the given directory
+    for file_name in os.listdir(directory):
+        match = pattern.match(file_name)
+        if match:
+            x = int(match.group(1))
+            y = int(match.group(2))
+            
+            # Check if x <= a and y >= b
+            if x <= a and y >= b:
+                file_path = os.path.join(directory, file_name)
+                try:
+                    df = pd.read_parquet(file_path)
+                    df = df.loc[(df.frame >= a) & (df.frame <= b)]
+                    return df
+                except Exception as e:
+                    print(f"Error reading {file_name}: {e}")
+                    return None
+    
+    print("No matching file found.")
+    return None
 
 def draw_polygons(polygons, points, scores, colors, alpha, show_dist, ax):
     """
@@ -440,13 +484,13 @@ class TrackingVideo:
         Get a frame from the video
     detect_instances_frame(instance_properties, frame, img, full_details)
         Detect instances in a frame
-    detect_instances(analysis_frames, crop_verb, resize_verb, full_details)
+    detect_instances(analysis_frames, crop_verb, resize_verb, full_details, progress_bar))
         Detect instances in the video
     linking_detection(df, cutoff, max_frame_gap, min_trajectory_length)
         Link detections
     interp_raw_trajectory(raw_trajectory_df)
         Interpolate trajectories
-    unscented_kalman_filter(measurements, r0, v0, a0, a, b, measurement_sigma, order, cov_factor, q, subsample_factor, saver_verb)
+    unscented_kalman_filter(measurements, r0, v0, a0, a, b, measurement_sigma, order, cov_factor, q, subsample_factor)
         Unscented Kalman Filter
     kalman_filter_full(trajectories, a, b, measurement_sigma, order, cov_factor, q, subsample_factor)
         Kalman filter
@@ -456,18 +500,24 @@ class TrackingVideo:
     def __init__(self, system_name, model_name, video_source_path, xmin, ymin, xmax, ymax, resolution, n_instances, interp_method, res_path):
         self.system_name = system_name
         self.model_name = model_name
+        self.video_source_path = video_source_path
+        
+        self._video = cv2.VideoCapture(self.video_source_path)
+        
         print(f'Loading model {self.model_name}')
         if self.model_name not in ['2D_versatile_fluo', '2D_paper_dsb2018', '2D_versatile_he']:
-            self.model = StarDist2D(None, name = model_name, basedir = './stardist_models/')
+            self._model = StarDist2D(None, name = self.model_name, basedir = './stardist_models/')
         else:
-            self.model = StarDist2D.from_pretrained(model_name)
+            self._model = StarDist2D.from_pretrained(self.model_name)
+
 
         if self.model.config.n_channel_in == 1:
             self.gray_scale_verb = True
         else:
             self.gray_scale_verb = False
-
-        self.video = cv2.VideoCapture(video_source_path)
+            
+        
+        
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
         self.xmin = xmin
         self.ymin = ymin
@@ -482,7 +532,33 @@ class TrackingVideo:
         self.n_instances = n_instances
         self.res_path = res_path
         self.interp_method = interp_method
+    
+    def __getstate__(self): 
+        state = self.__dict__.copy()
+        state['_model'] = None
+        state['_video'] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # no model loading here — it will be lazy-loaded on demand
         
+    @property
+    def model(self):
+        if self._model is None:
+            # Reinitialize model and video capture 
+            if self.model_name not in ['2D_versatile_fluo', '2D_paper_dsb2018', '2D_versatile_he']:
+                self._model = StarDist2D(None, name = self.model_name, basedir = './stardist_models/')
+            else:
+                self._model = StarDist2D.from_pretrained(self.model_name)
+        return self._model
+    
+    @property
+    def video(self):
+        # Reinitialize video capture
+        if self._video is None:
+            self._video = cv2.VideoCapture(self.video_source_path)
+        return self._video
         
     def get_frame(self, frame, crop_verb, resize_verb):
         """
@@ -577,7 +653,7 @@ class TrackingVideo:
         return instance_properties
 
 
-    def detect_instances(self, analysis_frames, crop_verb, resize_verb, full_details):
+    def detect_instances(self, analysis_frames, crop_verb, resize_verb, full_details, progress_bar):
         """
         Detect instances in the video
         
@@ -591,7 +667,9 @@ class TrackingVideo:
             Whether to resize the image
         full_details : bool 
             Whether to include full details
-        
+        progress_bar : bool
+            Whether to show progress bar
+            
         Returns
         -------
         pandas DataFrame
@@ -624,9 +702,14 @@ class TrackingVideo:
         results_dict = {key: [] for key in base_keys}
 
         # Process frame
-        for frame in tqdm(analysis_frames, desc = "Detecting instances from video"):
-            img = self.get_frame(frame, crop_verb, resize_verb)
-            self.detect_instances_frame(results_dict, frame, img, full_details)
+        if progress_bar:
+            for frame in tqdm(analysis_frames, desc = "Detecting instances from video"):
+                img = self.get_frame(frame, crop_verb, resize_verb)
+                self.detect_instances_frame(results_dict, frame, img, full_details)
+        else:
+            for frame in analysis_frames:
+                img = self.get_frame(frame, crop_verb, resize_verb)
+                self.detect_instances_frame(results_dict, frame, img, full_details)
 
         # Convert dictionary to DataFrame
         df = pd.DataFrame(results_dict)
@@ -687,12 +770,16 @@ class TrackingVideo:
         all_frames = pd.DataFrame({"frame": range(group["frame"].min(), group["frame"].max() + 1)})
         merged = pd.merge(all_frames, group, on="frame", how="left")
         merged = merged.sort_values(by="frame")
+
+        # Infer proper types before interpolation
+        merged = merged.infer_objects(copy=False)
+
         properties = merged.columns.difference(["frame", "particle", "color"])
         for col in properties:
             merged[col] = merged[col].interpolate(method=interp_method)
-        # ffill() --> Fill NA/NaN values by propagating the last valid observation to next valid.
+
         merged["particle"] = merged["particle"].ffill()
-        merged["color"]    = merged["color"].ffill()
+        merged["color"] = merged["color"].ffill()
         return merged
     
     def interp_raw_trajectory(self, raw_trajectory_df):
@@ -723,7 +810,7 @@ class TrackingVideo:
         return interpolated_trajectory_df
 
 
-    def unscented_kalman_filter(self, measurements, r0, v0, a0, a, b, measurement_sigma, order, cov_factor, q, subsample_factor, saver_verb):
+    def unscented_kalman_filter(self, measurements, r0, v0, a0, a, b, measurement_sigma, order, cov_factor, q, subsample_factor):
         """
         Unscented Kalman Filter
         
@@ -751,8 +838,6 @@ class TrackingVideo:
             Process noise
         subsample_factor : int
             Subsample factor
-        saver_verb : bool
-            Whether to save the results
         
         Returns
         -------
@@ -792,28 +877,19 @@ class TrackingVideo:
                                      [       0,        0,        0,       dt**4/6,   dt**3/2,    dt**2]], dtype = float)
         else:
             raise ValueError("Order must be 2 or 3")
-        
-        if saver_verb:
-            s = Saver(ukf)
+
         # measurement noise covariance matrix
         ukf.R = np.eye(2) * measurement_sigma**2
         
         # perform kalman filter
-        if saver_verb:
-            mu, cov = ukf.batch_filter(measurements, saver = s)
-        else:
-            mu, cov = ukf.batch_filter(measurements)
-        
+        mu, cov = ukf.batch_filter(measurements)
         # perform RTS smoother
         xs, Ps, Ks = ukf.rts_smoother(mu, cov)
         
-        if saver_verb:
-            return mu, cov, xs, Ps, s 
-        else:
-            return mu, cov, xs, Ps
+        return mu, cov, xs, Ps
 
 
-    def kalman_filter_full(self, trajectories, a, b, measurement_sigma, order, cov_factor, q, subsample_factor = 1):
+    def kalman_filter_full(self, trajectories, a, b, measurement_sigma, order, cov_factor, q, subsample_factor):
         """
         Kalman filter
         
@@ -850,10 +926,18 @@ class TrackingVideo:
         v1s = (r2s - r1s) * int(self.fps/subsample_factor)
         a0s = (v1s - v0s) * int(self.fps/subsample_factor)
         
+
         positions = trajectories.loc[:, ['x', 'y']].values.reshape(len(trajectories.frame.unique()), len(trajectories.particle.unique()), 2)
+        lock = threading.Lock()  # ensures clean tqdm updates across threads
+
+        with tqdm_joblib(tqdm(total = self.n_instances, desc = "UKF + RTS execution")) as pbar:
+            results = parallel(
+                joblib.delayed(self.unscented_kalman_filter)(positions[:, i], r0s[i], v0s[i], a0s[i], a, b, measurement_sigma, order, cov_factor, q, subsample_factor)
+                for i in range(self.n_instances)
+            )
+
+        mu, cov, xs, Ps = zip(*results)
         
-        mu, cov, xs, Ps = zip(*parallel(joblib.delayed(self.unscented_kalman_filter)(positions[:, i], r0s[i], v0s[i], a0s[i], a, b, measurement_sigma, order, cov_factor, q, subsample_factor, False)
-                                for i in tqdm(range(self.n_instances), desc="UKF + RTS application on droplet trajejectories")))
         mu = np.array(mu)
         cov = np.array(cov)
         xs = np.array(xs)

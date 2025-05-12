@@ -59,9 +59,9 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax.plot(x_interval_for_fit_turn, normal_distr(x_interval_for_fit_turn, *fit_results_gaussian_b[:, 0]), label = 'Gaussian fit')
             ax.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *fit_results_lorentzian_b[:, 0]), label = 'Lorentzian fit')
         ax.set_xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], [r'-$\pi$', r'$-\frac{\pi}{2}$', '$0$', r'$\frac{\pi}{2}$', r'$\pi$'])
-        ax.set(ylabel='pdf', xlabel= r'$\theta$ [rad]')
+        ax.set(ylabel='pdf', xlabel= r'$\Delta \theta$ [rad]')
         ax.legend(fontsize = 10)
-        if params['video_selection'] not in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        if params['trajectory_name'] not in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax.set_ylim(0, 6)
         ax.grid(linewidth = 0.2)
         if len(params['red_particle_idx']) > 0:
@@ -70,12 +70,12 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax1.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *fit_results_lorentzian_r[:, 0]), label = 'Lorentzian fit')
         ax1.set_xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi],[r'-$\pi$', r'$-\frac{\pi}{2}$', '$0$', r'$\frac{\pi}{2}$', r'$\pi$'])
         ax1.set(xlim = (-np.pi/4, np.pi/4))
-        ax1.set(xlabel= r'$\theta$ [rad]')
+        ax1.set(xlabel= r'$\Delta \theta$ [rad]')
         ax1.legend(fontsize = 10)
         ax1.grid(linewidth = 0.2)
         ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        plt.suptitle(f"Turning angles pdf - Lorentzian fit of system {params['system_name']}")
+        #plt.suptitle(f"Turning angles pdf - Lorentzian fit of system {params['system_name']}")
         plt.tight_layout()
         if save_plots: 
             plt.savefig(f"./{params['res_path']}/turning_angles_analysis/turn_ang.png", bbox_inches='tight')
@@ -116,8 +116,10 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             lorentzian_fit_results_wind_r = data['lorentzian_fit_results_wind_r']
             lorentzian_r2_wind_r = data['lorentzian_r2_wind_r']
             
-    t_r_blue = 1/( (1 - np.exp(-lorentzian_fit_results_wind_b[:, 0, 0]))/(2*1/params['fps']) )
-    t_r_red = 1/( (1 - np.exp(-lorentzian_fit_results_wind_r[:, 0, 0]))/(2*1/params['fps']) )
+    if len(params['blue_particle_idx']) > 0: 
+        t_r_blue = 1/( (1 - np.exp(-lorentzian_fit_results_wind_b[:, 0, 0]))/(2*1/params['fps']) )
+    if len(params['red_particle_idx']) > 0: 
+        t_r_red = 1/( (1 - np.exp(-lorentzian_fit_results_wind_r[:, 0, 0]))/(2*1/params['fps']) )
 
     if 1: 		
         fig, axs = plt.subplots(1, params['n_stages'], figsize = (15, 4), sharex = True, sharey = True)
@@ -131,16 +133,16 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                 #axs[i].plot(x, kde_red_turn[i], color='red')
 
             axs[i].grid(linewidth = 0.2)
-            axs[i].set(title = f"Stage {i + 1}", xlabel = r'$\theta$ [rad]')
+            axs[i].set(title = f"Stage {i + 1}", xlabel = r'$\Delta \theta$ [rad]')
             axs[i].text(0.0, 1.0, f"{params['letter_labels'][i]}", transform=(axs[i].transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         axs[0].set_xticks([-np.pi, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, np.pi], [r'-$\pi$', r'$-\pi/2$', r'$-\pi/4$', '$0$', r'$\pi/4$', r'$\pi/2$', r'$\pi$'])
         axs[0].set(ylabel = 'pdf [1/rad]', xlim = (-np.pi/4, np.pi/4))
-        if params['video_selection'] == '1b_&_1r_1':
+        if params['trajectory_name'] == '1b_&_1r_1':
             axs[0].set(ylim = (0, 15))
         else:
             axs[0].set(ylim = (0, 12))
         axs[-1].legend(fontsize = 10)
-        plt.suptitle(f"Turning angles distribution of system {params['system_name']}")
+        #plt.suptitle(f"Turning angles distribution of system {params['system_name']}")
         plt.tight_layout()
         if save_plots:
             plt.savefig(f"./{params['res_path']}/turning_angles_analysis/turning_angles_wind_stages_{params['n_stages']}_kde.png", bbox_inches='tight')
@@ -162,8 +164,8 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax1.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *lorentzian_fit_results_wind_r[step, :, 0]), color = 'red', label = 'Wrapped Lorentzian fit')
         ax1.grid(linewidth = 0.2)
         ax1.set_xticks([-np.pi, -np.pi/2, -np.pi/4, -np.pi/8, 0, np.pi/8, np.pi/4, np.pi/2, np.pi], [r'-$\pi$', r'$-\pi/2$', r'$-\pi/4$', r'$-\pi/8$', '$0$', r'$\pi/8$', r'$\pi/4$', r'$\pi/2$', r'$\pi$'])
-        ax1.set(title = f"Stage {i + 1}", xlabel = r'$\theta$ [rad]', ylabel = 'pdf [1/rad]', xlim = (-np.pi/4, np.pi/4))
-        if params['video_selection'] == '1b_&_1r_1':
+        ax1.set(title = f"Stage {i + 1}", xlabel = r'$\Delta \theta$ [rad]', ylabel = 'pdf [1/rad]', xlim = (-np.pi/4, np.pi/4))
+        if params['trajectory_name'] == '1b_&_1r_1':
             ax1.set(ylim = (0, 15))
         else:
             ax1.set(ylim = (0, 14))
@@ -176,7 +178,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax2.bar(turn_angles_bin_centers, turn_angles_r[step], width = np.diff(turn_angles_bins)[0], color = 'r', alpha = 0.5, label = 'Red droplets')
             ax2.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *lorentzian_fit_results_wind_r[step, :, 0]), color = 'red', label = 'Wrapped Lorentzian fit')
         ax2.grid(linewidth = 0.2)
-        ax2.set(title = f"Stage {i + 1}", xlabel = r'$\theta$ [rad]')
+        ax2.set(title = f"Stage {i + 1}", xlabel = r'$\Delta \theta$ [rad]')
         plt.setp(ax2.get_yticklabels(), visible=False)
         i, step = 2, params['steps_plot'][2]
         ax3 = fig.add_subplot(gs[0, 4:6], sharex = ax1, sharey = ax1)
@@ -187,7 +189,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax3.bar(turn_angles_bin_centers, turn_angles_r[step], width = np.diff(turn_angles_bins)[0], color = 'r', alpha = 0.5, label = 'Red droplets')
             ax3.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *lorentzian_fit_results_wind_r[step, :, 0]), color = 'red', label = 'Wrapped Lorentzian fit')
         ax3.grid(linewidth = 0.2)
-        ax3.set(title = f"Stage {i + 1}", xlabel = r'$\theta$ [rad]')
+        ax3.set(title = f"Stage {i + 1}", xlabel = r'$\Delta \theta$ [rad]')
         plt.setp(ax3.get_yticklabels(), visible=False)
         i, step = 3, params['steps_plot'][3]
         ax4 = fig.add_subplot(gs[0, 6:8], sharex = ax1, sharey = ax1)
@@ -198,7 +200,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax4.bar(turn_angles_bin_centers, turn_angles_r[step], width = np.diff(turn_angles_bins)[0], color = 'r', alpha = 0.5, label = 'Red droplets')
             ax4.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *lorentzian_fit_results_wind_r[step, :, 0]), color = 'red', label = 'Wrapped Lorentzian fit')
         ax4.grid(linewidth = 0.2)
-        ax4.set(title = f"Stage {i + 1}", xlabel = r'$\theta$ [rad]')
+        ax4.set(title = f"Stage {i + 1}", xlabel = r'$\Delta \theta$ [rad]')
         plt.setp(ax4.get_yticklabels(), visible=False)
         i, step = 4, params['steps_plot'][4]
         ax5 = fig.add_subplot(gs[0, 8:10], sharex = ax1, sharey = ax1)
@@ -209,7 +211,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax5.bar(turn_angles_bin_centers, turn_angles_r[step], width = np.diff(turn_angles_bins)[0], color = 'r', alpha = 0.5, label = 'Red droplets')
             ax5.plot(x_interval_for_fit_turn, wrapped_lorentzian_distr(x_interval_for_fit_turn, *lorentzian_fit_results_wind_r[step, :, 0]), color = 'red', label = 'Wrapped Lorentzian fit')
         ax5.grid(linewidth = 0.2)
-        ax5.set(title = f"Stage {i + 1}", xlabel = r'$\theta$ [rad]')
+        ax5.set(title = f"Stage {i + 1}", xlabel = r'$\Delta \theta$ [rad]')
         ax5.legend(fontsize = 10)
         plt.setp(ax5.get_yticklabels(), visible=False)
         ax6 = fig.add_subplot(gs[1, :5])
@@ -220,10 +222,10 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             
         for i, frame in enumerate(params['frames_stages']):
             ax6.bar(frame/params['fps'], 20000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        ax6.set(ylabel = r'$\gamma \; [rad]$', xlabel = 'Window time [s]', title = 'Scale factor')
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        ax6.set(ylabel = r'$\gamma \; [rad]$', xlabel = r'$t_w$ [s]', title = 'Scale factor')
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax6.set(ylim = (0, 0.2), xlim = (-200, 14000))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax6.set(ylim = (0, 0.12))
         else:
             ax6.set(ylim = (0, 0.3))
@@ -237,10 +239,10 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             
         for i, frame in enumerate(params['frames_stages']):
             ax7.bar(frame/params['fps'], 20000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        ax7.set(ylabel = r'$\mu \; [rad]$', xlabel = 'Window time [s]', title = 'Mean')
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        ax7.set(ylabel = r'$\mu \; [rad]$', xlabel = r'$t_w$ [s]', title = 'Mean')
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax7.set(ylim = (-0.01, 0.01), xlim = (-200, 14000))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:  
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:  
             ax7.set(ylim = (-0.5, 0.5))
         else:
             ax7.set(ylim = (-0.01, 0.01))
@@ -253,7 +255,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
         ax5.text(0.0, 1.0, 'e)', transform=(ax5.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax6.text(0.0, 1.0, 'f)', transform=(ax6.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax7.text(0.0, 1.0, 'g)', transform=(ax7.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        plt.suptitle(f"Turning angles distribution of system {params['system_name']}")
+        #plt.suptitle(f"Turning angles distribution of system {params['system_name']}")
         plt.tight_layout()
         if save_plots:
             plt.savefig(f"./{params['res_path']}/turning_angles_analysis/turning_angles_wind_stages_{params['n_stages']}.png", bbox_inches='tight')
@@ -266,16 +268,16 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
         fig, ax = plt.subplots(1, 1, figsize = (10, 4))
         for i, frame in enumerate(params['frames_stages']):
             ax.bar(frame/params['fps'], 20000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5)
-        ax.set(ylim = (0, 8), xlabel = 'Window time [s]', ylabel = r'$\tau_r \; [s]$', title = f"Relaxation time of system {params['system_name']}")
+        ax.set(ylim = (0, 8), xlabel = r'$t_w$ [s]', ylabel = r'$\tau_r \; [s]$', title = f"Relaxation time of system {params['system_name']}")
         if len(params['blue_particle_idx']) > 0:
             ax.plot(params['window_center_sec'], t_r_blue, 'b-', label = 'Blue droplets')
         if len(params['red_particle_idx']) > 0:
             ax.plot(params['window_center_sec'], t_r_red, 'r-', label = 'Red droplets')
         ax.legend(fontsize = 10)
         ax.grid(linewidth = 0.2)
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax.set(ylim = (0, 4), xlim = (-200, 14000))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax.set(ylim = (0, 15))
         else:
             ax.set(ylim = (0, 4))
@@ -298,7 +300,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
         ax.grid(linewidth = 0.2)
         for i, frame in enumerate(params['frames_stages']):
             ax.bar(frame/params['fps'], 20000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5)
-        if params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax.set_ylim(-0.3, 0.3)
         else:
             ax.set_ylim(-0.007, 0.007)
@@ -310,10 +312,10 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax1.plot(params['window_center_sec'], lorentzian_fit_results_wind_r[:, 0, 0], 'r')
         for i, frame in enumerate(params['frames_stages']):
             ax1.bar(frame/params['fps'], 20000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        ax1.set(ylabel = r'$\gamma \; [rad]$', xlabel = 'Window time [s]')
-        if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+        ax1.set(ylabel = r'$\gamma \; [rad]$', xlabel = r'$t_w$ [s]')
+        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
             ax1.set(ylim = (0, 0.3), xlim = (-200, 14000))
-        elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
             ax1.set(ylim = (0, 0.15))
         else:
             ax1.set(ylim = (0, 0.3))
@@ -342,7 +344,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
         ax.grid(linewidth = 0.2)
         ax.legend(fontsize = 10)
         
-        ax.set(xlabel = 'Window time [s]', ylabel = r'$R^2$', title = f"R² confront fit of the turning angles distribution of system {params['system_name']}")
+        ax.set(xlabel = r'$t_w$ [s]', ylabel = r'$R^2$', title = f"R² confront fit of the turning angles distribution of system {params['system_name']}")
         if save_plots: 
             plt.savefig(f"./{params['res_path']}/turning_angles_analysis/r2_confront.png", bbox_inches='tight')
             plt.savefig(f"./{params['pdf_res_path']}/turning_angles_analysis/r2_confront.pdf", bbox_inches='tight')
@@ -366,12 +368,12 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                     axs[i].axvline(t_r_red[step], color = 'red', linestyle = '--', label = r'$\tau_r$')
                 
                 axs[i].grid(linewidth = 0.2)
-                axs[i].set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+                axs[i].set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
                 axs[i].text(0.0, 1.0, f"{params['letter_labels'][i]}", transform=(axs[i].transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
             axs[0].set(ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]')
             axs[0].legend(['Blue droplets', 'Red droplets'], fontsize = 10)
             axs[-1].legend([r'$\tau_r$', r'$\tau_r$'], fontsize = 10)
-            plt.suptitle(f"EMSD of system {params['system_name']}")
+            #plt.suptitle(f"EMSD of system {params['system_name']}")
             plt.tight_layout()
             if save_plots:
                 plt.savefig(f"./{params['res_path']}/tamsd_analysis/EMSD_relaxation_time.png", bbox_inches='tight')
@@ -398,7 +400,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                 ax1.axvline(t_r_red[step], color = 'red', linestyle = '--', label = r'$\tau_r$')
             
             ax1.grid(linewidth = 0.2)
-            ax1.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]')
+            ax1.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]', ylabel = r'$\langle \Delta r^2 \rangle$ [$mm^2$]')
             #ax1.legend(['Blue droplets', 'Red droplets'], fontsize = 10)
             i, step = 1, params['steps_plot'][1]
             ax2 = fig.add_subplot(gs[0, 2:4], sharex = ax1, sharey = ax1)
@@ -413,7 +415,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                                 EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
                 ax2.axvline(t_r_red[step], color = 'red', linestyle = '--', label = r'$\tau_r$')
             ax2.grid(linewidth = 0.2)
-            ax2.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+            ax2.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
             plt.setp(ax2.get_yticklabels(), visible=False)
             i, step = 2, params['steps_plot'][2]
             ax3 = fig.add_subplot(gs[0, 4:6], sharex = ax1, sharey = ax1)
@@ -429,7 +431,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                                 EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
                 ax3.axvline(t_r_red[step], color = 'red', linestyle = '--', label = r'$\tau_r$')
             ax3.grid(linewidth = 0.2)
-            ax3.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+            ax3.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
             plt.setp(ax3.get_yticklabels(), visible=False)
             i, step = 3, params['steps_plot'][3]
             ax4 = fig.add_subplot(gs[0, 6:8], sharex = ax1, sharey = ax1)
@@ -446,7 +448,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                 ax4.axvline(t_r_red[step], color = 'red', linestyle = '--', label = r'$\tau_r$')
             
             ax4.grid(linewidth = 0.2)
-            ax4.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+            ax4.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
             plt.setp(ax4.get_yticklabels(), visible=False)
             i, step = 4, params['steps_plot'][4]
             ax5 = fig.add_subplot(gs[0, 8:10], sharex = ax1, sharey = ax1)
@@ -461,7 +463,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                 ax5.fill_between(np.arange(1, maxLagtime_msd + 1, 1)/params['fps'], EMSD_wind_r[0, step] - 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step],\
                                 EMSD_wind_r[0, step] + 2/np.sqrt(len(params['red_particle_idx'])) * EMSD_wind_r[1, step], alpha=0.5, edgecolor='#FF0000', facecolor='#FF5A52')
             ax5.grid(linewidth = 0.2)
-            ax5.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = 'Lag time [s]')
+            ax5.set(xscale = 'log', yscale = 'log', title = f"Stage {i + 1}", xlabel = r'$\tau$ [s]')
             ax5.legend([r'$\tau_b$', r'$\tau_r$'], fontsize = 10)
             plt.setp(ax5.get_yticklabels(), visible=False)
             ax6 = fig.add_subplot(gs[1, :5])
@@ -470,7 +472,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             if len(params['red_particle_idx']) > 0:
                 ax6.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 1], 'r-', label = 'Red droplets ')
             ax6.plot(params['window_center_sec'], np.ones(params['n_windows']), 'k-')
-            ax6.set(xlabel = 'Window time [s]', ylabel = r'$\alpha$', ylim = (-0.1, 2.1), title = 'Scaling exponents')
+            ax6.set(xlabel = r'$t_w$ [s]', ylabel = r'$\alpha$', ylim = (-0.1, 2.1), title = 'Scaling exponents')
             ax6.legend(loc = (0.09, 0.7), fontsize = 10)
             ax6.grid(linewidth = 0.2)
             for i, frame in enumerate(params['frames_stages']):
@@ -482,16 +484,16 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                 ax7.plot(params['window_center_sec'], pw_exp_wind_r[:, 0, 0], 'r-')
             for i, frame in enumerate(params['frames_stages']):
                 ax7.bar(frame/params['fps'], 2000, params['window_length'], bottom = -100, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-            if params['video_selection'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+            if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
                 ax7.set(ylim=(-1, 20), xlim = (-200, 14000))
-            elif params['video_selection'] in ['25b25r-1', '25b25r-2']:
+            elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
                 ax7.set(ylim=(-1, 200))
-            elif params['video_selection'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
+            elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
                 ax7.set(ylim=(0, 1800))
             else:
                 ax7.set(ylim=(-1, 10))
             #ax7.legend(loc = (0.6, 0.35), fontsize = 10)
-            ax7.set(xlabel = 'Window time [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$', title = 'Generalized diffusion coefficients')
+            ax7.set(xlabel = r'$t_w$ [s]', ylabel =r'$K{_\alpha} \; [mm^2/s^\alpha]$', title = 'Generalized diffusion coefficients')
             ax7.grid(linewidth = 0.2)
             ax1.text(0.0, 1.0, 'a)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
             ax2.text(0.0, 1.0, 'b)', transform=(ax2.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
@@ -500,7 +502,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             ax5.text(0.0, 1.0, 'e)', transform=(ax5.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
             ax6.text(0.0, 1.0, 'f)', transform=(ax6.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
             ax7.text(0.0, 1.0, 'g)', transform=(ax7.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-            plt.suptitle(f"EMSD of system {params['system_name']}")
+            #plt.suptitle(f"EMSD of system {params['system_name']}")
             plt.tight_layout()
             if save_plots:
                 plt.savefig(f"./{params['res_path']}/tamsd_analysis/EMSD_relaxation_time_v2.png", bbox_inches='tight')
@@ -514,7 +516,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
             fig, (ax, ax1) = plt.subplots(2, 1, figsize=(8, 5), sharex = True, sharey = True)
             anim_running = True
             def update_plot(frame):
-                title.set_text(f"Turning angles distribution of system {params['system_name']} at  " + r'$T_w$' + f"= {params['startFrames'][frame]/params['fps'] + params['window_length']/2} s")
+                title.set_text(f"Turning angles distribution of system {params['system_name']} at  " + r'$t_w$' + f"= {params['startFrames'][frame]/params['fps'] + params['window_length']/2} s")
                 if len(params['blue_particle_idx']) > 0:
                     line_b.set_ydata(normal_distr(x_interval_for_fit_turn, *gaussian_fit_results_wind_b[frame, :, 0]))
                     line_b1.set_ydata(wrapped_lorentzian_distr(x_interval_for_fit_turn, *lorentzian_fit_results_wind_b[frame, :, 0]))
@@ -536,7 +538,7 @@ def run_turning_analysis(trajectories, frames, EMSD_wind, pw_exp, maxLagtime_msd
                 elif (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) > 0):
                     return bar_container_b, bar_container_r, line_b, line_r, line_b1, line_r1
             
-            title = ax.set_title(f"Turning angles distribution of system {params['system_name']} at  " + r'$T_w$' + f"= {params['startFrames'][0]/params['fps'] + params['window_length']/2} s")
+            title = ax.set_title(f"Turning angles distribution of system {params['system_name']} at  " + r'$t_w$' + f"= {params['startFrames'][0]/params['fps'] + params['window_length']/2} s")
 
             if len(params['blue_particle_idx']) > 0:
                 line_b, = ax.plot(x_interval_for_fit_turn, normal_distr(x_interval_for_fit_turn, *gaussian_fit_results_wind_b[0, :, 0]), label = 'Gaussian fit')

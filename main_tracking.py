@@ -1,7 +1,9 @@
+
 import os
 import json
 import string
 import time
+import argparse
 
 import matplotlib as mpl
 mpl.rcParams['image.cmap'] = 'gray'
@@ -9,86 +11,135 @@ import matplotlib.pyplot as plt
 from matplotlib.transforms import ScaledTranslation
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 plt.rcParams.update({
-	'font.size': 15,               # General font size
-	'axes.titlesize': 14,          # Title font size
-	'axes.labelsize': 12,          # Axis label font size
-	'legend.fontsize': 10,         # Legend font size
-	'xtick.labelsize': 10,         # X-axis label size
-	'ytick.labelsize': 10          # Y-axis label size
-})       
+    'font.size': 15,               # General font size
+    'axes.titlesize': 14,          # Title font size
+    'axes.labelsize': 12,          # Axis label font size
+    'legend.fontsize': 10,         # Legend font size
+    'xtick.labelsize': 10,         # X-axis label size
+    'ytick.labelsize': 10          # Y-axis label size
+})
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 tqdm.pandas()
 
-from tracking_utils import ask_options, ask_yesno, user_message, print_recap_tracking, get_video_parameters, get_n_errors, draw_polygons, TrackingVideo, onClick
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or '3' to suppress even more
+import tensorflow as tf
+import argparse
+
+from tracking_utils import ask_options, ask_yesno, user_message, print_recap_tracking, get_video_parameters, get_n_errors, draw_polygons, TrackingVideo, onClick, concat_dataframes, find_and_import_file
 
 def main():
-    print("\nWelcome to DropleX, the Python tool for tracking and analysis of active particles from videos! \nLet's start by selecting the video you want to track and the part of the tracking pipeline you want to run. \nPlease follow the instructions below. \n")
+    print("\nWelcome to DropleX, the Python tool for tracking and analysis of active particles from videos!")
+    parser = argparse.ArgumentParser(description = "Run DropleX tracking pipeline")
+    parser.add_argument('--video', type=str, help="Video name (without .mp4)")
+    parser.add_argument('--model', type=str, help="Stardist model name")
+    parser.add_argument('--steps', nargs='+', type=int, help="Tracking steps to run: 1=Test, 2=Detect, 3=Link, 4=Interp, 5=Kalman, 6=All")
+    parser.add_argument('--interp', type=str, choices=["linear", "nearest", "quadratic", "cubic"], help="Interpolation method")
+    parser.add_argument('--run', action = 'store_true', help = "Run tracking (vs import data)")
+    parser.add_argument('--save', action = 'store_true')
+    parser.add_argument('--animated', action = 'store_true')
+    parser.add_argument('--show', action = 'store_true')
+    parser.add_argument('--start', type = int, default = 0, help = "Start frame for analysis")
+    parser.add_argument('--end', type = int, default = 1, help = "End frame for analysis")
+    args = parser.parse_args()
+    interactive = args.video is None
 
-    # list of mp4 files in the video_input directory, change this if you have different file types
-    video_names = [f for f in os.listdir('./video_input') if f.endswith('.mp4')]
-    video_names = [v.replace('.mp4', '') for v in video_names]
-    if len(video_names) == 0:
-        raise AssertionError("No videos found in the video_input folder")
-    
-    video_option = ask_options("Which video do you want to analyze?", video_names)[0]
-    video_selection = video_names[video_option - 1]
-    
-    # set model name and resolution 
-    # list the directories under stardist_models folder
-    model_names = [f for f in os.listdir('./stardist_models') if os.path.isdir(os.path.join('./stardist_models', f))]
-    model_names = model_names + ['2D_versatile_fluo', '2D_paper_dsb2018', '2D_versatile_he']
-    
-    model_option = ask_options("Which Stardist model do you want to use?", model_names)[0] 
-    model_name = model_names[model_option - 1]
-    resolution = 1000
-    
-    tracking_options = ask_options("Which part do you want to run? (1, 2, ...)", ["Test", "Detection & classification", "Linking", "Interpolation", "Kalman filter & RTS smoother", "All of them"])
-    # Set to false the following verbs if you want to import the data without running the process
-    TEST = any(opt in tracking_options for opt in {1, 6})
-    DETECT = any(opt in tracking_options for opt in {2, 6})
-    LINK = any(opt in tracking_options for opt in {3, 6})
-    INTERP = any(opt in tracking_options for opt in {4, 6})
-    KALMAN = any(opt in tracking_options for opt in {5, 6})
-    
-    if INTERP:
-        interpolation_options = ["linear", "nearest", "quadratic", "cubic"]
-        interpolation_choice = ask_options("Which kernel do you want to use for interpolation? (1, 2, ...)", ["linear", "nearest", "quadratic", "cubic"])[0]
-        interp_method = interpolation_options[interpolation_choice - 1]
-    else:
-        interp_method = None
-    
-    run_tracking_option = ask_options("Do you want to run the tracking or import the data?", ["Import the data", "Run the tracking"])[0]
-    run_tracking_verb = run_tracking_option == 2
-    
-    
-    save_plots = ask_yesno("Do you want to save the plots during the tracking?")
-    animated_plot_results = ask_yesno("Do you want to plot animations during the tracking?")
-    show_plots = ask_yesno("Do you want to see the plots during the tracking?")
-    
-    
+    if interactive:
+        print("\nLet's start by selecting the video you want to track and the part of the tracking pipeline you want to run. \nPlease follow the instructions below. \n")
+        # list of mp4 files in the video_input directory, change this if you have different file types
+        with open('tracking_config.json') as f:
+            tracking_config = json.load(f)
+        video_names = tracking_config.keys()
+        video_names = [v.replace('.mp4', '') for v in video_names]
+        if len(video_names) == 0:
+            raise AssertionError("No videos found in the video_input folder")
+        
+        video_option = ask_options("Which video do you want to analyze?", video_names)[0]
+        video_selection = video_names[video_option - 1]
+                
+        # set model name and resolution 
+        # list the directories under stardist_models folder
+        model_names = [f for f in os.listdir('./stardist_models') if os.path.isdir(os.path.join('./stardist_models', f))]
+        model_names = model_names + ['2D_versatile_fluo', '2D_paper_dsb2018', '2D_versatile_he']
+        
+        model_option = ask_options("Which Stardist model do you want to use?", model_names)[0] 
+        model_name = model_names[model_option - 1]
+        
+        
+        tracking_options = ask_options("Which part do you want to run? (1, 2, ...)", ["Test", "Detection & classification", "Linking", "Interpolation", "Kalman filter & RTS smoother", "All of them"])
+        # Set to false the following verbs if you want to import the data without running the process
+        TEST = any(opt in tracking_options for opt in {1, 6})
+        DETECT = any(opt in tracking_options for opt in {2, 6})
+        LINK = any(opt in tracking_options for opt in {3, 6})
+        INTERP = any(opt in tracking_options for opt in {4, 6})
+        KALMAN = any(opt in tracking_options for opt in {5, 6})
+        
+        if INTERP:
+            interpolation_options = ["linear", "nearest", "quadratic", "cubic"]
+            interpolation_choice = ask_options("Which kernel do you want to use for interpolation? (1, 2, ...)", ["linear", "nearest", "quadratic", "cubic"])[0]
+            interp_method = interpolation_options[interpolation_choice - 1]
+        else:
+            interp_method = None
+        
+        run_tracking_option = ask_options("Do you want to run the tracking or import the data?", ["Import the data", "Run the tracking"])[0]
+        run_tracking_verb = run_tracking_option == 2
+        save_plots = ask_yesno("Do you want to save the plots during the tracking?")
+        animated_plot_results = ask_yesno("Do you want to plot animations during the tracking?")
+        show_plots = ask_yesno("Do you want to see the plots during the tracking?")
+    else:        
+        # Non-interactive cluster mode
+        print("\nRunning in non-interactive mode. \n")
+        video_selection = args.video
+        
+        
+        model_name = args.model
+        steps = args.steps
+        TEST = any(opt in steps for opt in {1, 6})
+        DETECT = any(opt in steps for opt in {2, 6})
+        LINK = any(opt in steps for opt in {3, 6})
+        INTERP = any(opt in steps for opt in {4, 6})
+        KALMAN = any(opt in steps for opt in {5, 6})
+        interp_method = args.interp if INTERP else None
+        run_tracking_verb = args.run
+        save_plots = args.save
+        animated_plot_results = args.animated
+        show_plots = args.show
 
     choices = {
-        "video_selection": video_selection,
-        "model_name": model_name,
-        "resolution": resolution,
-        "test": TEST,
-        "detect": DETECT,
-        "link": LINK,
-        "interpolation": INTERP,
-        "kalman": KALMAN,
-        "save": save_plots,
-        "show": show_plots,
-        "animated": animated_plot_results
-    }
+            "video_selection": video_selection,
+            "model_name": model_name,
+            "test": TEST,
+            "detect": DETECT,
+            "link": LINK,
+            "interpolation": INTERP,
+            "interp_method": interp_method,
+            "kalman": KALMAN,
+            "run": run_tracking_verb,
+            "save": save_plots,
+            "show": show_plots,
+            "animated": animated_plot_results
+        }
     
-    
-        
-    # select video to track and import parameters
     params = get_video_parameters(video_selection)
     globals().update(params)
+    resolution = 1000
+    
+    if not interactive:
+        global analysis_frames
+        analysis_frames = np.arange(args.start, args.end, 1).astype(int)
+    
+    print_recap_tracking(choices)
+    
+    if interactive:
+        proceed = ask_yesno("Do you want to proceed with these choices?")
+        if not proceed:
+            user_message("Script aborted. Please restart the program.", "error")
+            exit()
+        else:
+            user_message("Ok, let's go and proceed with the script.", "success")
     
     if crop_verb:
         pxDimension = petri_diameter/resolution # [mm/pixel]
@@ -103,15 +154,6 @@ def main():
     if not xmax - xmin == ymax - ymin:
         #raise AssertionError(f"The selected region is not square ({xmax - xmin} != {ymax - ymin})")
         print(f"The selected region is not square ({xmax - xmin} != {ymax - ymin})")
-
-    print_recap_tracking(choices, model_name, resolution, interp_method)
-    
-    proceed = ask_yesno("Do you want to proceed with these choices?")
-    if not proceed:
-        user_message("Script aborted. Please restart the program.", "error")
-        exit()
-    else:
-        user_message("Ok, let's go and proceed with the script.", "success")
         
     start = time.time()
     
@@ -124,8 +166,8 @@ def main():
         #tf.keras.utils.plot_model(tracking.model.keras_model, to_file = f'./models/{model_name}/model.pdf', show_shapes=True, show_layer_names=True, rankdir='TB', expand_nested=False)
 
         # plot first and last frame with ROI full image
-        full_img1 = tracking.get_frame(analysis_frames[0], crop_verb = False, resize_verb = True)
-        full_img2 = tracking.get_frame(analysis_frames[-1], crop_verb = False, resize_verb = True)
+        full_img1 = tracking.get_frame(analysis_frames[0], crop_verb, resize_verb = True)
+        full_img2 = tracking.get_frame(analysis_frames[-1], crop_verb, resize_verb = True)
         fig, (ax, ax1) = plt.subplots(1, 2, figsize = (12, 6))
         ax.imshow(full_img1)
         ax.add_artist(plt.Rectangle((xmin, ymin), xmax-xmin, ymax-ymin, edgecolor='r', facecolor='none'))
@@ -142,8 +184,8 @@ def main():
             plt.close()
     
         # plot first and last frame with detection
-        df1 = tracking.detect_instances(analysis_frames[:1], crop_verb, resize_verb = True, full_details = True)
-        df2 = tracking.detect_instances(analysis_frames[-1:], crop_verb, resize_verb = True, full_details = True)
+        df1 = tracking.detect_instances(analysis_frames[:1], crop_verb, resize_verb = True, full_details = True, progress_bar = False)
+        df2 = tracking.detect_instances(analysis_frames[-1:], crop_verb, resize_verb = True, full_details = True, progress_bar = False)
         if tracking.model.config.n_classes is not None:
             n_instances_detected1 = np.unique(df1['class_id'], return_counts = True)[1]
             n_instances_detected2 = np.unique(df2['class_id'], return_counts = True)[1]
@@ -181,7 +223,7 @@ def main():
             ax1.set_title(f'Frame {analysis_frames[-1]} - {n_instances_detected2[0]} droplets')
         plt.tight_layout()
         if save_plots:
-            plt.savefig(f'{res_path}/first_last_frame_detection.pdf', bbox_inches = 'tight')
+            plt.savefig(f'{res_path}/detection_{analysis_frames[0]}_{analysis_frames[-1]}.pdf', bbox_inches = 'tight')
         if show_plots:
             plt.show()
         else:
@@ -193,7 +235,7 @@ def main():
         
     if TEST:
         test_frames = np.arange(0, 100, 1).astype(int) # change as needed
-        test_df = tracking.detect_instances(test_frames, crop_verb = crop_verb, resize_verb = True, full_details = True)
+        test_df = tracking.detect_instances(test_frames, crop_verb, resize_verb = True, full_details = True, progress_bar = True)
         print('Pre filtering stats')
         counts_per_frame, err_frames, err_up, err_sub, max_n_of_consecutive_errs = get_n_errors(test_df, tracking.n_instances, test_frames)
 
@@ -338,25 +380,40 @@ def main():
     #                             DETECTION AND FILTERING RAW DATA                          #
     #########################################################################################
     if DETECT:
+        
+        if 0:
+            print("Concatenating partial dataframes...")
+            concat_dataframes(res_path, analysis_frames)
+        
         if run_tracking_verb:
-            raw_detection_df = tracking.detect_instances(analysis_frames, crop_verb = crop_verb, resize_verb = True, full_details = False)
+            raw_detection_df = tracking.detect_instances(analysis_frames, crop_verb, resize_verb = True, full_details = False, progress_bar = True)
             raw_detection_df.to_parquet(tracking.res_path + f'raw_detection_{analysis_frames[0]}_{analysis_frames[-1]}.parquet')
         else:
             print('Loading raw detections...')
-            raw_detection_df = pd.read_parquet(tracking.res_path + f'raw_detection_{analysis_frames[0]}_{analysis_frames[-1]}.parquet')
-
-        # if necessary, filter raw detection data in some way 
-        filtered_detection_df = raw_detection_df.loc[(raw_detection_df.x < xmax) & (raw_detection_df.x > xmin) & (raw_detection_df.y < ymax) & (raw_detection_df.y > ymin)]
+            #raw_detection_df = pd.read_parquet(tracking.res_path + f'raw_detection_{analysis_frames[0]}_{analysis_frames[-1]}.parquet')
+            raw_detection_df = find_and_import_file(tracking.res_path, 'raw_detection', analysis_frames[0], analysis_frames[-1])
         
-        # to save ram
-        if raw_detection_df is not None: del raw_detection_df
-
+        filtered_detection_df = raw_detection_df.loc[(raw_detection_df.area > 530) & (raw_detection_df['intensity_mean-0'] < 100) & (np.sqrt((raw_detection_df.x - 500)**2 + (raw_detection_df.y - 500)**2) < 500)]
+        
         print("Pre filtering stats")
         counts_per_frame, err_frames, err_up, err_sub, max_n_of_consecutive_errs = get_n_errors(raw_detection_df, tracking.n_instances, analysis_frames)
+        
+        
         print("Post filtering stats")    
         counts_per_frame_filtered, err_frames_filtered, err_up_filtered, err_sub_filtered, max_n_of_consecutive_errs_filtered = get_n_errors(filtered_detection_df, tracking.n_instances, analysis_frames)    
 
         if 1:
+            
+            fig, ax = plt.subplots(1, 1, figsize = (8, 8))
+            img = ax.scatter(raw_detection_df['intensity_mean-0'], raw_detection_df['intensity_mean-1'], c = raw_detection_df['prob'], s=0.1, cmap='viridis')
+            fig.colorbar(img, ax = ax)
+            if save_plots:
+                plt.savefig(tracking.res_path + f'raw_{analysis_frames[0]}_{analysis_frames[-1]}.png', dpi = 500)
+            if show_plots:
+                plt.show()
+            else:
+                plt.close()
+            
             fig, ax = plt.subplots(2, 2, figsize = (8, 4))
             ax[0, 0].scatter(counts_per_frame.frame, counts_per_frame.counts, s=0.1)
             ax[0, 0].set(xlabel = 'Frame', ylabel = 'N of droplets', title = 'N of droplets per frame')
@@ -370,6 +427,18 @@ def main():
                 ax.text(0.0, 1.0, f'{letter_labels[i]}', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
             plt.tight_layout()
             plt.savefig(tracking.res_path + f'raw_instances_{analysis_frames[0]}_{analysis_frames[-1]}.png', dpi = 500)
+            if show_plots:
+                plt.show()
+            else:
+                plt.close()
+            
+            
+            
+            fig, ax = plt.subplots(1, 1, figsize = (8, 8))
+            img = ax.scatter(filtered_detection_df['intensity_mean-0'], filtered_detection_df['intensity_mean-1'], c = filtered_detection_df['prob'], s=0.1, cmap='viridis')
+            fig.colorbar(img, ax = ax)
+            if save_plots:
+                plt.savefig(tracking.res_path + f'filtered_{analysis_frames[0]}_{analysis_frames[-1]}.png', dpi = 500)
             if show_plots:
                 plt.show()
             else:
@@ -393,6 +462,9 @@ def main():
             else:
                 plt.close()
 
+        # to save ram
+        if raw_detection_df is not None: del raw_detection_df
+
 
     #########################################################################################
     #                         LINK FILTERED DETECTIONS INTO TRAJECTORIES                    #
@@ -401,46 +473,46 @@ def main():
     if LINK:
         if run_tracking_verb:
             
-            if raw_detection_df is None:
+            if filtered_detection_df is None:
                 print('Loading raw detections...')
-                raw_detection_df = pd.read_parquet(tracking.res_path + f'raw_detection_{analysis_frames[0]}_{analysis_frames[-1]}.parquet')
-                # if necessary, filter raw detection data in some way 
-                filtered_detection_df = raw_detection_df.loc[(raw_detection_df.x < xmax) & (raw_detection_df.x > xmin) & (raw_detection_df.y < ymax) & (raw_detection_df.y > ymin)]
+                raw_detection_df = find_and_import_file(tracking.res_path, 'raw_detection', analysis_frames[0], analysis_frames[-1])
+                filtered_detection_df = raw_detection_df.loc[(raw_detection_df.area > 500) & (raw_detection_df.prob > 0.7)]
                 counts_per_frame_filtered, err_frames_filtered, err_up_filtered, err_sub_filtered, max_n_of_consecutive_errs_filtered = get_n_errors(filtered_detection_df, tracking.n_instances, analysis_frames) 
                 del raw_detection_df
                 
             
-            raw_trajectory_df = tracking.linking_detection(filtered_detection_df, cutoff = 150, max_frame_gap = max_n_of_consecutive_errs_filtered + 1, min_trajectory_length = 5000)
+            raw_trajectory_df = tracking.linking_detection(filtered_detection_df, cutoff = 150, max_frame_gap = max_n_of_consecutive_errs_filtered + 5, min_trajectory_length = 50000)
+            
+            # check if class_id is preserved in multiclass detection
+            if tracking.model.config.n_classes is not None:    
+                if len(np.where(raw_trajectory_df.groupby('particle').class_id.nunique().values != 1)[0]) == 0:
+                    print('Class_id is preserved')   
+                else:
+                    print('Class_id is not preserved')
+                    # fix class_id error, improve if necessary
+                    err_droplet_ids = np.where(raw_trajectory_df.groupby('particle').class_id.nunique().values != 1)[0]
+                    for err_droplet_id in err_droplet_ids:
+                        n_frames_1 = len(raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 1)])
+                        n_frames_2 = len(raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 2)])
+                        print(f'Particle {err_droplet_id} has {n_frames_1} frames in class 1 and {n_frames_2} frames in class 2')
+                        if n_frames_1 > n_frames_2:
+                            raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 2), 'class_id'] = 1
+                        else:
+                            raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 1), 'class_id'] = 2
+                        print(f'Particle {err_droplet_id} has been fixed')
+
+            
             raw_trajectory_df.to_parquet(res_path + f'raw_tracking_{analysis_frames[0]}_{analysis_frames[-1]}.parquet', index = False)
         else:
             print('Loading linked trajectories...')
             raw_trajectory_df = pd.read_parquet(res_path + f'raw_tracking_{analysis_frames[0]}_{analysis_frames[-1]}.parquet')
 
+        print(raw_trajectory_df.groupby('particle').frame.agg(['min', 'max']))
         # save ram
         if filtered_detection_df is not None: del filtered_detection_df
 
         print("Post linking stats")
         counts_per_frame, err_frames, err_up, err_sub, max_n_of_consecutive_errs = get_n_errors(raw_trajectory_df, tracking.n_instances, analysis_frames)
-
-
-        # check if class_id is preserved in multiclass detection
-        if tracking.model.config.n_classes is not None:    
-            if len(np.where(raw_trajectory_df.groupby('particle').class_id.nunique().values != 1)[0]) == 0:
-                print('Class_id is preserved')   
-            else:
-                print('Class_id is not preserved')
-                # fix class_id error, improve if necessary
-                err_droplet_ids = np.where(raw_trajectory_df.groupby('particle').class_id.nunique().values != 1)[0]
-                for err_droplet_id in err_droplet_ids:
-                    n_frames_1 = len(raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 1)])
-                    n_frames_2 = len(raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 2)])
-                    print(f'Particle {err_droplet_id} has {n_frames_1} frames in class 1 and {n_frames_2} frames in class 2')
-                    if n_frames_1 > n_frames_2:
-                        raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 2), 'class_id'] = 1
-                    else:
-                        raw_trajectory_df.loc[(raw_trajectory_df.particle == err_droplet_id) & (raw_trajectory_df.class_id == 1), 'class_id'] = 2
-                    print(f'Particle {err_droplet_id} has been fixed')
-
 
         if 1:
             fig, ax = plt.subplots(2, 2, figsize = (8, 4))
@@ -461,10 +533,10 @@ def main():
             else:
                 plt.close()
                 
+    
     #########################################################################################
     #                                   POST PROCESSING                                     #
     #########################################################################################
-
 
     if INTERP:
         if run_tracking_verb:
@@ -502,14 +574,14 @@ def main():
             else:
                 plt.close()
     
+    
     if KALMAN:
+        subsample_factor = 1 # subsample the trajectory if needed
         if run_tracking_verb:
-            
             if interpolated_trajectory_df is None:
                 print('Loading interpolated trajectories...')
                 interpolated_trajectory_df = pd.read_parquet(res_path + f'interpolated_tracking_{analysis_frames[0]}_{analysis_frames[-1]}.parquet')
             
-            subsample_factor = 1 # subsample the trajectory if needed
             kalman_rts_trajectories = tracking.kalman_filter_full(interpolated_trajectory_df, a = 1e-3, b = 2., measurement_sigma = 0.01, order = 2, cov_factor = .01, q = 2, subsample_factor=subsample_factor)
             if tracking.model.config.n_classes is not None:
                 kalman_rts_trajectories['class_id'] = kalman_rts_trajectories['class_id'].astype(int)
