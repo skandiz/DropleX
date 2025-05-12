@@ -50,16 +50,26 @@ Ensure you have the following software installed:
 
 ### Running the Tracking pipeline
 
-To execute the Tracking pipeline, run the following command:
+To execute the Tracking pipeline in interactive mode, run the following command:
 ```bash
 python3 main_tracking.py
 ```
+If instead you want to run the Tracking pipeline in non-interactive mode, run the following command:
+```bash
+python3 main_tracking.py --video "sample_video" --model "skandiz_model_rgb" --steps 6 --interp "linear" --start 0 --end 36000  --run --save
+```
+
 
 ### Running the Analysis
 
-To execute the Tracking pipeline, run the following command:
+To execute the Analysis pipeline, run the following command:
 ```bash
 python3 main_analysis.py
+```
+
+If instead you want to run the Analysis pipeline in non-interactive mode, run the following command:
+```bash
+python3 main_analysis.py --trajectory "sample_video" --steps 8 --run
 ```
 
 ---
