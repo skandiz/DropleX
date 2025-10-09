@@ -17,6 +17,7 @@ from analysis_utils import MB_2D, MB_2D_generalized, fit_hist, get_trajs, speed_
 
 
 def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysis_verb, animated_plot_results):
+    
     print("    Global speed distribution analysis...")
     
     if len(params['blue_particle_idx']) > 0:
@@ -36,58 +37,6 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
 
     speed_bin_centers = (speed_bins[1:] + speed_bins[:-1]) / 2
     x_interval_for_fit = np.linspace(speed_bins[0], speed_bins[-1], 10000)
-
-    if len(params['blue_particle_idx']) > 0:
-        blue_speed_distr, _ = np.histogram(v_blue, speed_bins, density = True)
-
-        # fit speed distribution with 2D Maxwell Boltzmann distribution
-        fit_results_gaussian_b, r2_blue = fit_hist(blue_speed_distr, speed_bin_centers, MB_2D, np.array([1.]), maxfev_ = 25000)
-        print(f"    MB fit results             -- Blue droplets --> R² = {np.round(r2_blue, 2)} -- μ = {np.round(mean_v_blue, 3)} mm/s -- σ = {np.round(fit_results_gaussian_b[0, 0], 3)} ± {np.round(fit_results_gaussian_b[0, 1], 3)} mm/s")
-        
-        # fit speed distribution with a generalization of a 2D Maxwell Boltzmann distribution
-        fit_results_gaussian_b_g, r2_blue_g  = fit_hist(blue_speed_distr, speed_bin_centers, MB_2D_generalized, [1., 2., 1.], maxfev_ = 25000)
-        print(f"    Generalized MB fit results -- Blue droplets --> R² = {np.round(r2_blue_g, 3)} -- σ = {np.round(fit_results_gaussian_b_g[0, 0], 3)} ± {np.round(fit_results_gaussian_b_g[0, 1], 3)} mm/s -- b = {np.round(fit_results_gaussian_b_g[1, 0], 3)} ± {np.round(fit_results_gaussian_b_g[1, 1], 3)} -- A = {np.round(fit_results_gaussian_b_g[2, 0], 3)} ± {np.round(fit_results_gaussian_b_g[2, 1], 3)} ")
-
-    if len(params['red_particle_idx']) > 0:
-        red_speed_distr, _ = np.histogram(v_red, speed_bins, density = True)
-        # fit speed distribution with 2D Maxwell Boltzmann distribution
-        fit_results_gaussian_r, r2_red  = fit_hist(red_speed_distr, speed_bin_centers, MB_2D, np.array([1.]), maxfev_ = 25000)
-        print(f"    MB fit results             -- Red droplets  --> R² = {np.round(r2_red,2)} -- μ = {np.round(mean_v_red, 3)} mm/s --σ = {np.round(fit_results_gaussian_r[0, 0], 3)} ± {np.round(fit_results_gaussian_r[0, 1], 3)} mm/s")
-        
-        # fit speed distribution with a generalization of a 2D Maxwell Boltzmann distribution
-        fit_results_gaussian_r_g, r2_red_g = fit_hist(red_speed_distr, speed_bin_centers, MB_2D_generalized, [1., 2., 1.], maxfev_ = 25000)
-        print(f"    Generalized MB fit results -- Red droplets  --> R² = {np.round(r2_red_g, 3)} -- σ = {np.round(fit_results_gaussian_r_g[0, 0], 4)} ± {np.round(fit_results_gaussian_r_g[0, 1], 4)} mm/s -- b = {np.round(fit_results_gaussian_r_g[1, 0], 3)} ± {np.round(fit_results_gaussian_r_g[1, 1], 3)} -- A = {np.round(fit_results_gaussian_r_g[2, 0], 3)} ± {np.round(fit_results_gaussian_r_g[2, 1], 3)}")
-        
-        
-    if 1:    
-        fig, (ax, ax1) = plt.subplots(1, 2, figsize = (12, 4), sharey=True, sharex = True)
-        if len(params['blue_particle_idx']) > 0:
-            ax.hist(v_blue, bins = speed_bins, **params['default_kwargs_blue'][0], label = 'Blue droplets')
-            ax.plot(x_interval_for_fit, MB_2D(x_interval_for_fit, fit_results_gaussian_b[:, 0]), label = 'MB fit')
-            ax.plot(x_interval_for_fit, MB_2D_generalized(x_interval_for_fit, *fit_results_gaussian_b_g[:, 0]), label = 'Generalized MB fit')
-        ax.set(xlabel = f"v [{params['speed_units']}]", ylabel = 'pdf [s/mm]')
-        ax.legend(fontsize = 10)
-        ax.grid(linewidth = 0.2)
-        if len(params['red_particle_idx']) > 0:
-            ax1.hist(v_red, bins = speed_bins, **params['default_kwargs_red'][0], label = 'Red droplets')
-            ax1.plot(x_interval_for_fit, MB_2D(x_interval_for_fit, fit_results_gaussian_r[:, 0]), label = 'MB fit')
-            ax1.plot(x_interval_for_fit, MB_2D_generalized(x_interval_for_fit, *fit_results_gaussian_r_g[:, 0]), label = 'Generalized MB fit')
-        if params['trajectory_name'] not in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax1.set(xlabel = f"v [{params['speed_units']}]", xlim = (-.1, 5), ylim = (0, 7))
-        ax1.legend(fontsize = 10)
-        ax1.grid(linewidth = 0.2)
-        ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        #plt.suptitle(f"Speed distribution of system {params['system_name']}")
-        plt.tight_layout()
-        if save_plots: 
-            plt.savefig(f"./{params['res_path']}/speed_analysis/speed_distribution.png", bbox_inches='tight')
-            plt.savefig(f"./{params['pdf_res_path']}/speed_analysis/speed_distribution.pdf", bbox_inches='tight')
-        if show_plots: 
-            plt.show()
-        else:
-            plt.close()
-    
     print('    Windowed speed distribution analysis...')
     if len(params['blue_particle_idx']) > 0:
         if run_analysis_verb:
@@ -116,33 +65,23 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
             
     if 1:
         gs = gridspec.GridSpec(2, 10)
-        fig = plt.figure(figsize = (18, 8))
+        fig = plt.figure(figsize = (18, 6))
         i, step = 0, params['steps_plot'][0]
         ax1 = fig.add_subplot(gs[0, :2])
         if len(params['blue_particle_idx']) > 0:
             ax1.bar(speed_bin_centers, speed_distr_b[step], width = speed_bins[1] - speed_bins[0], color = 'b', alpha = 0.5)
-            #ax1.plot(x, kde_blue[i], color='blue')
         if len(params['red_particle_idx']) > 0:
             ax1.bar(speed_bin_centers, speed_distr_r[step], width = speed_bins[1] - speed_bins[0], color = 'r', alpha = 0.5)
-            #ax1.plot(x, kde_red[i], color='red')
-        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax1.set(title = f"Stage {i + 1}")
-        else:
-            ax1.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
+        ax1.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
         ax1.set(xlabel = f"v [{params['speed_units']}]", ylabel = 'pdf [s/mm]')
         ax1.grid(linewidth = 0.2)
         i, step = 1, params['steps_plot'][1]
         ax2 = fig.add_subplot(gs[0, 2:4], sharex = ax1, sharey = ax1)
         if len(params['blue_particle_idx']) > 0:
             ax2.bar(speed_bin_centers, speed_distr_b[step], width = speed_bins[1] - speed_bins[0], color = 'b', alpha = 0.5)
-            #ax2.plot(x, kde_blue[i], color='blue')
         if len(params['red_particle_idx']) > 0:
             ax2.bar(speed_bin_centers, speed_distr_r[step], width = speed_bins[1] - speed_bins[0], color = 'r', alpha = 0.5)
-            #ax2.plot(x, kde_red[i], color='red')
-        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax2.set(title = f"Stage {i + 1}")
-        else:
-            ax2.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
+        ax2.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
         ax2.set(xlabel = f"v [{params['speed_units']}]")
         ax2.grid(linewidth = 0.2)
         plt.setp(ax2.get_yticklabels(), visible=False)
@@ -150,14 +89,9 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
         ax3 = fig.add_subplot(gs[0, 4:6], sharex = ax1, sharey = ax1)
         if len(params['blue_particle_idx']) > 0:
             ax3.bar(speed_bin_centers, speed_distr_b[step], width = speed_bins[1] - speed_bins[0], color = 'b', alpha = 0.5)
-            #ax3.plot(x, kde_blue[i], color='blue')
         if len(params['red_particle_idx']) > 0:
             ax3.bar(speed_bin_centers, speed_distr_r[step], width = speed_bins[1] - speed_bins[0], color = 'r', alpha = 0.5)
-            #ax3.plot(x, kde_red[i], color='red')
-        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax3.set(title = f"Stage {i + 1}")
-        else:
-            ax3.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
+        ax3.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
         ax3.set(xlabel = f"v [{params['speed_units']}]")
         ax3.grid(linewidth = 0.2)
         plt.setp(ax3.get_yticklabels(), visible=False)
@@ -165,14 +99,9 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
         ax4 = fig.add_subplot(gs[0, 6:8], sharex = ax1, sharey = ax1)
         if len(params['blue_particle_idx']) > 0:
             ax4.bar(speed_bin_centers, speed_distr_b[step], width = speed_bins[1] - speed_bins[0], color = 'b', alpha = 0.5)
-            #ax4.plot(x, kde_blue[i], color='blue')
         if len(params['red_particle_idx']) > 0:
             ax4.bar(speed_bin_centers, speed_distr_r[step], width = speed_bins[1] - speed_bins[0], color = 'r', alpha = 0.5)
-            #ax4.plot(x, kde_red[i], color='red')
-        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax4.set(title = f"Stage {i + 1}")
-        else:
-            ax4.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
+        ax4.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2))
         ax4.set(xlabel = f"v [{params['speed_units']}]")
         ax4.grid(linewidth = 0.2)
         plt.setp(ax4.get_yticklabels(), visible=False)
@@ -180,17 +109,12 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
         ax5 = fig.add_subplot(gs[0, 8:10], sharex = ax1, sharey = ax1)
         if len(params['blue_particle_idx']) > 0:
             ax5.bar(speed_bin_centers, speed_distr_b[step], width = speed_bins[1] - speed_bins[0], color = 'b', alpha = 0.5)
-            #ax5.plot(x, kde_blue[i], color='blue')
         if len(params['red_particle_idx']) > 0:
             ax5.bar(speed_bin_centers, speed_distr_r[step], width = speed_bins[1] - speed_bins[0], color = 'r', alpha = 0.5)
-            #ax5.plot(x, kde_red[i], color='red')
-        if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax5.set(title = f"Stage {i + 1}")
-        else:
-            ax5.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2)) 
+        ax5.set(title = f"Stage {i + 1}", ylim = (0, 8), xlim = (-.1, 2)) 
         ax5.set(xlabel = f"v [{params['speed_units']}]")
         ax5.grid(linewidth = 0.2)
-        ax5.legend(fontsize = 10)
+        #ax5.legend(fontsize = 10)
         plt.setp(ax5.get_yticklabels(), visible=False)
         ax6 = fig.add_subplot(gs[1, :5])
         if len(params['blue_particle_idx']) > 0:
@@ -199,17 +123,10 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
             ax6.plot(params['window_center_sec'], mean_speed_r, 'r-', label = 'Red droplets')
         for i, frame in enumerate(params['frames_stages']):
             ax6.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5)
-        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax6.set(ylim = (-0.1, 2.5), xlim = (-200, 14000))
-        elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
-            ax6.set(ylim = (-0.1, 4))
-        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax6.set(ylim = (-0.1, 40))
-        else:
-            ax6.set(ylim = (-0.1, 2))
-        ax6.grid(linewidth = 0.2)
+        ax6.set(ylim = (-0.1, 2.5), xlim = (-200, params['max_window_sec']))
         ax6.set(ylabel = r'$\langle v \rangle$ [mm/s]', title = 'Mean speed')
         ax6.legend(loc = (0.1, 0.7), fontsize = 10)
+        ax6.grid(linewidth = 0.2)
         
         ax7 = fig.add_subplot(gs[1, 5:])
         if len(params['blue_particle_idx']) > 0:
@@ -221,14 +138,8 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
         ax7.grid(linewidth = 0.2)
         ax7.legend(fontsize = 10)
         ax7.set_title('Speed std')
-        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax7.set(ylim = (-0.1, 2), xlim = (-200, 14000))
-        elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
-            ax7.set(ylim = (-0.1, 4))
-        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax7.set(ylim = (-0.1, 15))
-        else:
-            ax7.set(ylim = (-0.1, 2))
+        ax7.set(ylim = (-0.1, 2), xlim = (-200, params['max_window_sec']))
+        
         ax7.set(ylabel = 'std(v) [mm/s]')
         ax7.legend(loc = (0.1, 0.7), fontsize = 10)
         ax1.text(0.0, 1.0, 'a)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
@@ -238,118 +149,10 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
         ax5.text(0.0, 1.0, 'e)', transform=(ax5.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax6.text(0.0, 1.0, 'f)', transform=(ax6.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
         ax7.text(0.0, 1.0, 'g)', transform=(ax7.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        #plt.suptitle(f"Speed distribution of system {params['system_name']}")
         plt.tight_layout()
         if save_plots:
             plt.savefig(f"./{params['res_path']}/speed_analysis/speed_wind_stages_{params['n_stages']}.png", bbox_inches='tight')
             plt.savefig(f"./{params['pdf_res_path']}/speed_analysis/speed_wind_stages_{params['n_stages']}.pdf", bbox_inches='tight')
-        if show_plots:
-            plt.show()
-        else:
-            plt.close()
-
-            
-        fig, (ax, ax1) = plt.subplots(2, 1, figsize = (8, 6), sharex = True, sharey = True)
-        if len(params['blue_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], mean_speed_b, 'b-',label = 'Blue droplets')
-        if len(params['red_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], mean_speed_r, 'r-', label = 'Red droplets')
-        for i, frame in enumerate(params['frames_stages']):
-            ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5)
-        ax.grid(linewidth = 0.2)
-        ax.legend(fontsize = 10)
-        ax.set_title(f"Velocity properties of system {params['system_name']}")
-        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax.set(ylim = (-0.1, 2.5), xlim = (-200, 14000))
-        elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
-            ax.set(ylim = (-0.1, 4))
-        elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-            ax.set(ylim = (-0.1, 40))
-        else:
-            ax.set(ylim = (-0.1, 2))
-        ax.set(ylabel = r'$\langle v \rangle$ [mm/s]')
-        ax.legend(loc = (0.1, 0.7), fontsize = 10)
-        if len(params['blue_particle_idx']) > 0:
-            ax1.plot(params['window_center_sec'], std_speed_b, 'b-')
-        if len(params['red_particle_idx']) > 0:
-            ax1.plot(params['window_center_sec'], std_speed_r, 'r-')
-        for i, frame in enumerate(params['frames_stages']):
-            ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i+1}")
-        ax1.grid(linewidth = 0.2)
-        ax1.legend(loc = (0.13, 0.4), fontsize = 10)
-        ax1.set(xlabel = r'$t_w$ [s]', ylabel = r'$std(v)$ [mm/s]')
-        ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        plt.tight_layout()
-        if save_plots:
-            plt.savefig(f"./{params['res_path']}/speed_analysis/speed_windowed_mean_std_{params['n_stages']}.png", bbox_inches='tight')
-            plt.savefig(f"./{params['pdf_res_path']}/speed_analysis/speed_windowed_mean_std_{params['n_stages']}.pdf", bbox_inches='tight')
-        if show_plots:
-            plt.show()
-        else:
-            plt.close()
-
-
-        fig, (ax, ax1) = plt.subplots(1, 2, figsize=(12, 4), sharex=True)
-        if len(params['blue_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], r2_wind_b, 'b', label = 'Blue droplets')
-            ax1.plot(params['window_center_sec'], fit_results_wind_b[:, 0], 'b', label = 'Blue droplets')
-        if len(params['red_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], r2_wind_r, 'r', label = 'Red droplets')
-            ax1.plot(params['window_center_sec'], fit_results_wind_r[:, 0], 'r', label = 'Red droplets')
-        ax.grid(linewidth = 0.2)
-        ax.legend(fontsize = 10)
-        ax.set(xlabel = r'$t_w$ [s]', ylabel = r'$R^2$', title = r'$R^2$')
-        
-        if params['trajectory_name'] == '49b1r_post_merge':
-            ax1.set(ylim = (0, .5))
-        elif params['trajectory_name'] == '49b1r':
-            ax1.set(ylim = (0, 4))
-        elif params['trajectory_name'] == '25b25r-1':
-            ax1.set(ylim = (0, 4))
-        ax1.set(ylabel = r'$\sigma \; [mm/s]$', xlabel = r'$t_w$ [s]', title = r'$\sigma$')
-        ax1.legend(fontsize = 10)
-        ax1.grid(linewidth = 0.2)
-        ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        #plt.suptitle(f"Windowed Speed distribution with 2D Maxwell Boltzmann fit of system {params['system_name']}")
-        plt.tight_layout()
-        if save_plots: 
-            plt.savefig(f"./{params['res_path']}/speed_analysis/speed_distribution_windowed.png", bbox_inches='tight')
-            plt.savefig(f"./{params['pdf_res_path']}/speed_analysis/speed_distribution_windowed.pdf", bbox_inches='tight')
-        if show_plots:
-            plt.show()
-        else:
-            plt.close()
-
-        fig, (ax, ax1, ax2) = plt.subplots(1, 3, figsize=(12, 4), sharex=True)
-        if len(params['blue_particle_idx']):
-            ax.plot(params['window_center_sec'], fit_results_wind_g_b[:, 0], 'b', label = 'Blue droplets')
-            ax1.plot(params['window_center_sec'], fit_results_wind_g_b[:, 1], 'b', label = 'Blue droplets')
-            ax2.plot(params['window_center_sec'], fit_results_wind_g_b[:, 2], 'b', label = 'Blue droplets')
-
-
-        if len(params['red_particle_idx']):
-            ax.plot(params['window_center_sec'], fit_results_wind_g_r[:, 0], 'r', label = 'Red droplets')
-            ax1.plot(params['window_center_sec'], fit_results_wind_g_r[:, 1], 'r', label = 'Red droplets')
-            ax2.plot(params['window_center_sec'], fit_results_wind_g_r[:, 2], 'r', label = 'Red droplets')
-
-        ax.set(xlabel = r'$t_w$ [s]', ylabel = r'$\sigma$')
-        ax1.set(xlabel = r'$t_w$ [s]', ylabel = r'$\beta$')
-        ax2.set(xlabel = r'$t_w$ [s]', ylabel = r'$A$')
-        ax.grid(linewidth = 0.2)
-        ax1.grid(linewidth = 0.2)
-        ax2.grid(linewidth = 0.2)
-        ax.legend(fontsize = 10)
-        
-        ax.text(0.0, 1.0, 'a)', transform=(ax.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        ax1.text(0.0, 1.0, 'b)', transform=(ax1.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        ax2.text(0.0, 1.0, 'c)', transform=(ax2.transAxes + ScaledTranslation(-20/72, +7/72, fig.dpi_scale_trans)), fontsize='medium', va='bottom')
-        #plt.suptitle(f"Generalized MB fit parameters evolution of system {params['system_name']}")
-        plt.tight_layout()
-        if save_plots: 
-            plt.savefig(f"./{params['res_path']}/speed_analysis/fit_results_generalizedMB.png", bbox_inches='tight')
-            plt.savefig(f"./{params['pdf_res_path']}/speed_analysis/fit_results_generalizedMB.pdf", bbox_inches='tight')
         if show_plots:
             plt.show()
         else:
@@ -399,10 +202,7 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
             ax.grid(linewidth = 0.2)
             ax1.grid(linewidth = 0.2)
             ax.legend(loc = (0.1, 0.6), fontsize = 10)
-            if params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-                ax1.set(xlabel = f"v [{params['speed_units']}]", ylim = (0, .35))
-            else:
-                ax1.set(xlabel = f"v [{params['speed_units']}]", xlim = (-.1, 5), ylim = (0, 8))
+            ax1.set(xlabel = f"v [{params['speed_units']}]", xlim = (-.1, 5), ylim = (0, 8))
             plt.tight_layout()
             fig.canvas.mpl_connect('button_press_event', onClick)
             ani = FuncAnimation(fig, update_plot, params['n_windows'], repeat=True, blit=False)
@@ -414,9 +214,12 @@ def run_speed_analysis(trajectories, params, show_plots, save_plots, run_analysi
                 plt.close()
                 
     if (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) > 0):
-        mean_speed_all = np.mean(np.array(mean_speed_b, mean_speed_r), axis = 0)
-        return (mean_speed_b, mean_speed_r, mean_speed_all)
+        return (mean_speed_b, mean_speed_r)
     elif (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) == 0):
-        return (mean_speed_b, None, None)
+        return (mean_speed_b, None)
     elif (len(params['blue_particle_idx']) == 0) & (len(params['red_particle_idx']) > 0):
-        return (None, mean_speed_r, None)
+        return (None, mean_speed_r)
+
+
+    
+    

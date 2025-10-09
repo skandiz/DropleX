@@ -1,7 +1,9 @@
 import os
 import re 
 import json
-import contextlib
+import subprocess
+import sys
+import hashlib
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
@@ -16,13 +18,16 @@ import random
 from csbdeep.utils import normalize
 import skimage
 import trackpy as tp
+from filterpy.common import Saver
 from filterpy.kalman import MerweScaledSigmaPoints, UnscentedKalmanFilter
 import joblib
 import multiprocessing
 import threading
 n_jobs = int(multiprocessing.cpu_count()*0.8)
 parallel = joblib.Parallel(n_jobs=n_jobs, backend='loky', verbose=0)
+        
 
+import contextlib
 
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
@@ -40,6 +45,14 @@ def tqdm_joblib(tqdm_object):
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close()
 
+
+def compute_sha256(file_path):
+    """Compute SHA-256 checksum of a file."""
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            sha256.update(chunk)
+    return sha256.hexdigest()
 
 def user_message(message, message_type):
     """
@@ -175,6 +188,47 @@ def get_video_parameters(video_selection, config_path="./tracking_config.json"):
         "crop_verb": config["crop_verb"]
     }
 
+def ensure_video_exists(video_selection, tracking_config_path='tracking_config.json', links_path='links.json'):
+    with open(tracking_config_path) as f:
+        tracking_config = json.load(f)
+            
+    video_path = tracking_config[video_selection]['video_source_path']
+    if not os.path.isfile(video_path):
+        print(f"Video file '{video_path}' not found. Attempting to download...")
+
+        # Load links config
+        with open('links.json', 'r') as f:
+            links_config = json.load(f)
+
+        # Get the download link for the video
+        video_url = links_config[video_selection]['video_url']
+        expected_size = links_config[video_selection["size_bytes"]]
+        expected_sha256 = links_config[video_selection["sha256"]]
+        
+        if not video_url:
+            print(f"No download URL found for '{video_filename}' in links.json.")
+            sys.exit(1)
+        
+        # Download using gdown
+        try:
+            subprocess.run(['gdown', '--fuzzy', video_url], check=True, cwd = os.path.dirname(video_path))
+            if os.path.isfile(video_path):
+                print(f"Download successful: {video_path}")
+            else:
+                print(f"Download attempted but '{video_path}' still not found.")
+                sys.exit(1)
+                
+            if expected_size and os.path.getsize(video_path) != expected_size:
+                raise ValueError(f"Downloaded file size does not match expected size for '{video_filename}'.")
+
+            if expected_sha256 and compute_sha256(video_path) != expected_sha256:
+                raise ValueError(f"Downloaded file checksum does not match expected SHA-256 for '{video_filename}'.")
+            
+        except subprocess.CalledProcessError:
+            print("gdown failed to download the file.")
+            sys.exit(1)
+    else:
+        print(f"Video file '{video_path}' found.")
 
 def get_n_errors(df, n_instances, frames):
     """
@@ -257,6 +311,7 @@ def concat_dataframes(path, analysis_frames):
 
     # Get a list of all parquet files in the folder
     parquet_files = [f for f in os.listdir(path) if f.endswith('.parquet')]
+    print(f"Found {len(parquet_files)} parquet files in {path}")
     # Create a list of tuples (file, frame1, frame2) for sorting
     files_with_frames = [(f, *extract_frames(f)) for f in parquet_files]
     # Sort files based on frame1 (and optionally frame2 if needed)
@@ -956,3 +1011,4 @@ class TrackingVideo:
                 kalman_rts_trajectories.loc[kalman_rts_trajectories.particle == i, ['y']] = xs[i, :, 3]
                 kalman_rts_trajectories.loc[kalman_rts_trajectories.particle == i, ['y_var']] = Ps[i, :, 3, 3]
         return kalman_rts_trajectories
+    

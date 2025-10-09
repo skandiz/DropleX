@@ -80,213 +80,6 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
     params['stages_colors'] = [params['stages_shades'][int(i)] for i in params['stages_colors']]
 
     if 1:
-        fig, ax = plt.subplots(1, 1, figsize = (8, 4), sharex = True)
-        if len(params['blue_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], velocity_pol_b, "-b")
-        if len(params['red_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], velocity_pol_r, "-r")
-        if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], velocity_pol_full, "-k")
-        for i, frame in enumerate(params['frames_stages']):
-            ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-        ax.set(ylabel = r'$\Phi$', ylim = (0, 1), xlabel = r'$t_w$ [s]', title = f"Velocity polarization of system {params['system_name']}")
-        ax.grid()
-        ax.legend(loc = (0.1, 0.5), fontsize = 10)
-        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax.set(xlim = (-200, 14000))
-        if save_plots:
-            plt.savefig(f"./{params['res_path']}/order_analysis/velocity_polarization.png", bbox_inches="tight")
-            plt.savefig(f"./{params['pdf_res_path']}/order_analysis/velocity_polarization.pdf", bbox_inches="tight")
-        if show_plots:
-            plt.show()
-        else:
-            plt.close()
-            
-        fig, (ax, ax1, ax2) = plt.subplots(3, 1, figsize = (10, 8), sharex=True)
-        if len(params['blue_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], hex_order_real_wind_b[:, 0], "b", label = "Blue")
-            ax.fill_between(params['window_center_sec'], hex_order_real_wind_b[:, 0] - 2*hex_order_real_wind_b[:, 1], hex_order_real_wind_b[:, 0] + 2*hex_order_real_wind_b[:, 1], color = "b", alpha = 0.3)
-            ax1.plot(params['window_center_sec'], hex_order_img_wind_b[:, 0], "b", label = "Blue")
-            ax1.fill_between(params['window_center_sec'], hex_order_img_wind_b[:, 0] - 2*hex_order_img_wind_b[:, 1], hex_order_img_wind_b[:, 0] + 2*hex_order_img_wind_b[:, 1], color = "b", alpha = 0.3)
-            ax2.plot(params['window_center_sec'], n_of_neighbors_wind_b, "b", label = "Blue")
-
-        if len(params['red_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], hex_order_real_wind_r[:, 0], "r", label = "Red")
-            ax.fill_between(params['window_center_sec'], hex_order_real_wind_r[:, 0] - 2*hex_order_real_wind_r[:, 1], hex_order_real_wind_r[:, 0] + 2*hex_order_real_wind_r[:, 1], color = "r", alpha = 0.3)
-            ax1.plot(params['window_center_sec'], hex_order_img_wind_r[:, 0], "r", label = "Red")
-            ax1.fill_between(params['window_center_sec'], hex_order_img_wind_r[:, 0] - 2*hex_order_img_wind_r[:, 1], hex_order_img_wind_r[:, 0] + 2*hex_order_img_wind_r[:, 1], color = "r", alpha = 0.3)
-            ax2.plot(params['window_center_sec'], n_of_neighbors_wind_r, "r", label = "Red")
-            
-        if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
-            ax.plot(params['window_center_sec'], hex_order_real_wind[:, 0], "k", label = "All droplets")
-            ax.fill_between(params['window_center_sec'], hex_order_real_wind[:, 0] - 2*hex_order_real_wind[:, 1], hex_order_real_wind[:, 0] + 2*hex_order_real_wind[:, 1], color = "k", alpha = 0.3)
-            ax1.plot(params['window_center_sec'], hex_order_img_wind[:, 0], "k", label = "All droplets")
-            ax1.fill_between(params['window_center_sec'], hex_order_img_wind[:, 0] - 2*hex_order_img_wind[:, 1], hex_order_img_wind[:, 0] + 2*hex_order_img_wind[:, 1], color = "k", alpha = 0.3)
-            ax2.plot(params['window_center_sec'], n_of_neighbors_wind, "k", label = "All droplets")
-
-        ax.set(ylabel = 'Real part', ylim = (-0.1, 1.1), title = f"Hexatic order parameter -- {params['system_name']}")
-        ax1.set( ylabel = 'Imaginary part', ylim = (-0.5, 0.5))
-        ax2.set(xlabel = r'$t_w$ [s]', ylabel = 'N of neighbors', ylim = (0, 6))
-        for i, frame in enumerate(params['frames_stages']):
-            ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-            ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-            ax2.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
-        ax.grid(linewidth = 0.5)
-        ax1.grid(linewidth = 0.5)
-        ax2.grid(linewidth = 0.5)
-        ax.legend()
-        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax2.set(xlim = (-200, 14000))
-        plt.tight_layout()
-        if save_plots:
-            plt.savefig(f"{params['res_path']}/order_analysis/hex_order_windowed.png", bbox_inches="tight")
-            plt.savefig(f"{params['pdf_res_path']}/order_analysis/hex_order_windowed.pdf", format='pdf', bbox_inches="tight")
-        if show_plots:
-            plt.show()
-        else:
-            plt.close()
-        
-        
-        if len(params['blue_particle_idx']) > 0:
-            test_pos = positions[:, ~params['red_mask']]
-            radii_b = radii[:, ~params['red_mask']]
-
-            fig, ax = plt.subplots(3, 3, figsize = (12, 12), sharex = 'row', sharey = 'row')
-            frame = np.argmin(hex_order_real_b)
-            n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_b))
-            ax[0, 0].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(test_pos[frame].shape[0]):
-                ax[0, 0].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_b[frame, i], color = 'blue', fill = True))
-            ax[0, 0].set(title = f"Min -- {np.round(np.min(hex_order_real_b), 2)}", xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 0].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 0].set(xlabel = 'N', ylabel = 'N of neighbors pdf', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 0].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 0].set(xlabel = 'Angle [rad]', ylabel = 'Angle of neighbors pdf',  xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-
-            frame = np.argmax(hex_order_real_b)
-            n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_b))
-            ax[0, 1].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(test_pos[frame].shape[0]):
-                ax[0, 1].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_b[frame, i], color = 'blue', fill = True))
-                #ax[0, 1].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), 2*1.5*np.mean(radii_b), color = 'blue', fill = False))
-            ax[0, 1].set(title = f"Max -- {np.round(np.max(hex_order_real_b), 2)}", xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 1].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 1].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 1].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 1].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-
-            frame = params['n_frames'] - 1
-            n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_b))
-            ax[0, 2].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(test_pos[frame].shape[0]):
-                ax[0, 2].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_b[frame, i], color = 'blue', fill = True))
-                #ax[0, 2].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), 2*1.5*np.mean(radii_b), color = 'blue', fill = False))
-            ax[0, 2].set(title = f'Last frame -- {np.round(hex_order_real_b[frame], 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 2].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-            #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
-            plt.tight_layout()
-            if save_plots:
-                plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_blue.png", bbox_inches="tight")
-                plt.savefig(f"./{params['pdf_res_path']}/order_analysis/hex_order_examples_blue.pdf", bbox_inches="tight")
-            if show_plots:
-                plt.show()
-            else:
-                plt.close()
-        
-        if len(params['red_particle_idx']) > 0:
-            test_pos = positions[:, params['red_mask']]
-            radii_r = radii[:, params['red_mask']]
-
-            fig, ax = plt.subplots(3, 3, figsize = (12, 12), sharex = 'row', sharey = 'row')
-            frame = np.argmin(hex_order_real_r)
-            n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_r))
-            ax[0, 0].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(test_pos[frame].shape[0]):
-                ax[0, 0].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_r[frame, i], color = 'red', fill = True))
-            ax[0, 0].set(title = f'Min -- {np.round(np.min(hex_order_real_r), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 0].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 0].set(xlabel = 'N', ylabel = 'N of neighbors pdf', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 0].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 0].set(xlabel = 'Angle [rad]', ylabel = 'Angle of neighbors pdf',  xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-
-            frame = np.argmax(hex_order_real_r)
-            n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_r))
-            ax[0, 1].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(test_pos[frame].shape[0]):
-                ax[0, 1].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_r[frame, i], color = 'red', fill = True))
-            ax[0, 1].set(title = f'Max -- {np.round(np.max(hex_order_real_r), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 1].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 1].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 1].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 1].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-
-            frame = params['n_frames'] - 1
-            n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_r))
-            ax[0, 2].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(test_pos[frame].shape[0]):
-                ax[0, 2].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_r[frame, i], color = 'red', fill = True))
-            ax[0, 2].set(title = f'Last frame -- {np.round(hex_order_real_r[frame], 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 2].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-            #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
-            plt.tight_layout()
-            if save_plots:
-                plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_red.png", bbox_inches="tight")
-                plt.savefig(f"./{params['pdf_res_path']}/order_analysis/hex_order_examples_red.pdf", bbox_inches="tight")
-            if show_plots:
-                plt.show()
-            else:
-                plt.close()
-            
-        if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
-            fig, ax = plt.subplots(3, 3, figsize = (12, 12), sharex = 'row', sharey = 'row')
-            frame = np.argmin(hex_order_real)
-            n_of_neighbors_temp, theta = get_neighbours_props(positions[frame], np.mean(radii))
-            ax[0, 0].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(positions[frame].shape[0]):
-                ax[0, 0].add_artist(plt.Circle((positions[frame][i, 0], positions[frame][i, 1]), radii[frame, i], color = 'black', fill = True))
-            ax[0, 0].set(title = f'Min -- {np.round(np.min(hex_order_real), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 0].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 0].set(xlabel = 'N', ylabel = 'N of neighbors pdf', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 0].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 0].set(xlabel = 'Angle [rad]', ylabel = 'Angle of neighbors pdf',  xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-
-            frame = np.argmax(hex_order_real)
-            n_of_neighbors_temp, theta = get_neighbours_props(positions[frame], np.mean(radii))
-            ax[0, 1].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(positions[frame].shape[0]):
-                ax[0, 1].add_artist(plt.Circle((positions[frame][i, 0], positions[frame][i, 1]), radii[frame, i], color = 'black', fill = True))
-            ax[0, 1].set(title = f'Max -- {np.round(np.max(hex_order_real), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 1].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 1].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 1].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 1].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-
-            frame = params['n_frames'] - 1
-            n_of_neighbors_temp, theta = get_neighbours_props(positions[frame], np.mean(radii))
-            ax[0, 2].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
-            for i in range(positions[frame].shape[0]):
-                ax[0, 2].add_artist(plt.Circle((positions[frame][i, 0], positions[frame][i, 1]), radii[frame, i], color = 'black', fill = True))
-            ax[0, 2].set(title = f'Last frame -- {np.round(hex_order_real[frame], 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
-            ax[1, 2].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
-            ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
-            ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
-            ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
-            #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
-            plt.tight_layout()
-            if save_plots:
-                plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_full.png", bbox_inches="tight")
-                plt.savefig(f"./{params['pdf_res_path']}/order_analysis/hex_order_examples_full.pdf", bbox_inches="tight")
-            if show_plots:
-                plt.show()
-            else:
-                plt.close()
-            
         fig, (ax, ax1) = plt.subplots(2, 1, figsize = (8, 6), sharex = True)
         if len(params['blue_particle_idx']) > 0:
             ax.plot(params['window_center_sec'], velocity_pol_b, '-b')
@@ -308,13 +101,12 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5)
             
         ax.set(ylabel = r'$\Phi$', ylim = (0, 1), title = f"Dynamical and structural order of system {params['system_name']}")
-        ax1.set(ylabel = r'$\phi_6$', xlabel = r'$t_w$ [s]', ylim = (-0.1, 1.1))
+        ax1.set(ylabel = r'$\Psi_6$', xlabel = r'$t_w$ [s]', ylim = (-0.1, 1.1))
         ax.grid()
         ax1.grid()
         ax.legend(loc = (0.1, 0.5), fontsize = 10)
         ax1.legend(loc = (0.1, 0.5), fontsize = 10)
-        if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-            ax.set(xlim = (-200, 14000))
+        ax.set(xlim = (-200, params['max_window_sec']))
         plt.tight_layout()
         if save_plots:
             plt.savefig(f"./{params['res_path']}/order_analysis/polarization_and_hexatic.png", bbox_inches="tight")
@@ -323,7 +115,7 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
             plt.show()
         else:
             plt.close()
-            
+        
     if (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) > 0):
         return (velocity_pol_b, velocity_pol_r, velocity_pol_full), (hex_order_real_wind_b, hex_order_real_wind_r, hex_order_real_wind)
     elif (len(params['blue_particle_idx']) > 0) & (len(params['red_particle_idx']) == 0):
@@ -331,3 +123,190 @@ def run_order_analysis(orientations, positions, radii, frames, params, video, sa
     elif (len(params['blue_particle_idx']) == 0) & (len(params['red_particle_idx']) > 0):
         return (None, velocity_pol_r, None), (None, hex_order_real_wind_r, None)
     
+"""
+fig, (ax, ax1, ax2) = plt.subplots(3, 1, figsize = (10, 8), sharex=True)
+if len(params['blue_particle_idx']) > 0:
+    ax.plot(params['window_center_sec'], hex_order_real_wind_b[:, 0], "b", label = "Blue")
+    ax.fill_between(params['window_center_sec'], hex_order_real_wind_b[:, 0] - 2*hex_order_real_wind_b[:, 1], hex_order_real_wind_b[:, 0] + 2*hex_order_real_wind_b[:, 1], color = "b", alpha = 0.3)
+    ax1.plot(params['window_center_sec'], hex_order_img_wind_b[:, 0], "b", label = "Blue")
+    ax1.fill_between(params['window_center_sec'], hex_order_img_wind_b[:, 0] - 2*hex_order_img_wind_b[:, 1], hex_order_img_wind_b[:, 0] + 2*hex_order_img_wind_b[:, 1], color = "b", alpha = 0.3)
+    ax2.plot(params['window_center_sec'], n_of_neighbors_wind_b, "b", label = "Blue")
+
+if len(params['red_particle_idx']) > 0:
+    ax.plot(params['window_center_sec'], hex_order_real_wind_r[:, 0], "r", label = "Red")
+    ax.fill_between(params['window_center_sec'], hex_order_real_wind_r[:, 0] - 2*hex_order_real_wind_r[:, 1], hex_order_real_wind_r[:, 0] + 2*hex_order_real_wind_r[:, 1], color = "r", alpha = 0.3)
+    ax1.plot(params['window_center_sec'], hex_order_img_wind_r[:, 0], "r", label = "Red")
+    ax1.fill_between(params['window_center_sec'], hex_order_img_wind_r[:, 0] - 2*hex_order_img_wind_r[:, 1], hex_order_img_wind_r[:, 0] + 2*hex_order_img_wind_r[:, 1], color = "r", alpha = 0.3)
+    ax2.plot(params['window_center_sec'], n_of_neighbors_wind_r, "r", label = "Red")
+    
+if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
+    ax.plot(params['window_center_sec'], hex_order_real_wind[:, 0], "k", label = "All droplets")
+    ax.fill_between(params['window_center_sec'], hex_order_real_wind[:, 0] - 2*hex_order_real_wind[:, 1], hex_order_real_wind[:, 0] + 2*hex_order_real_wind[:, 1], color = "k", alpha = 0.3)
+    ax1.plot(params['window_center_sec'], hex_order_img_wind[:, 0], "k", label = "All droplets")
+    ax1.fill_between(params['window_center_sec'], hex_order_img_wind[:, 0] - 2*hex_order_img_wind[:, 1], hex_order_img_wind[:, 0] + 2*hex_order_img_wind[:, 1], color = "k", alpha = 0.3)
+    ax2.plot(params['window_center_sec'], n_of_neighbors_wind, "k", label = "All droplets")
+
+ax.set(ylabel = 'Real part', ylim = (-0.1, 1.1), title = f"Hexatic order parameter -- {params['system_name']}")
+ax1.set( ylabel = 'Imaginary part', ylim = (-0.5, 0.5))
+ax2.set(xlabel = r'$t_w$ [s]', ylabel = 'N of neighbors', ylim = (0, 6))
+for i, frame in enumerate(params['frames_stages']):
+    ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
+    ax1.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
+    ax2.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
+ax.grid(linewidth = 0.5)
+ax1.grid(linewidth = 0.5)
+ax2.grid(linewidth = 0.5)
+ax.legend()
+if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
+    ax2.set(xlim = (-200, params['max_window_sec']))
+plt.tight_layout()
+if save_plots:
+    plt.savefig(f"{params['res_path']}/order_analysis/hex_order_windowed.png", bbox_inches="tight")
+    plt.savefig(f"{params['pdf_res_path']}/order_analysis/hex_order_windowed.pdf", format='pdf', bbox_inches="tight")
+if show_plots:
+    plt.show()
+else:
+    plt.close()
+
+
+if len(params['blue_particle_idx']) > 0:
+    test_pos = positions[:, ~params['red_mask']]
+    radii_b = radii[:, ~params['red_mask']]
+
+    fig, ax = plt.subplots(3, 3, figsize = (12, 12), sharex = 'row', sharey = 'row')
+    frame = np.argmin(hex_order_real_b)
+    n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_b))
+    ax[0, 0].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(test_pos[frame].shape[0]):
+        ax[0, 0].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_b[frame, i], color = 'blue', fill = True))
+    ax[0, 0].set(title = f"Min -- {np.round(np.min(hex_order_real_b), 2)}", xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 0].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 0].set(xlabel = 'N', ylabel = 'N of neighbors pdf', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 0].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 0].set(xlabel = 'Angle [rad]', ylabel = 'Angle of neighbors pdf',  xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+
+    frame = np.argmax(hex_order_real_b)
+    n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_b))
+    ax[0, 1].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(test_pos[frame].shape[0]):
+        ax[0, 1].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_b[frame, i], color = 'blue', fill = True))
+        #ax[0, 1].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), 2*1.5*np.mean(radii_b), color = 'blue', fill = False))
+    ax[0, 1].set(title = f"Max -- {np.round(np.max(hex_order_real_b), 2)}", xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 1].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 1].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 1].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 1].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+
+    frame = params['n_frames'] - 1
+    n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_b))
+    ax[0, 2].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(test_pos[frame].shape[0]):
+        ax[0, 2].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_b[frame, i], color = 'blue', fill = True))
+        #ax[0, 2].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), 2*1.5*np.mean(radii_b), color = 'blue', fill = False))
+    ax[0, 2].set(title = f'Last frame -- {np.round(hex_order_real_b[frame], 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 2].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+    #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_blue.png", bbox_inches="tight")
+        plt.savefig(f"./{params['pdf_res_path']}/order_analysis/hex_order_examples_blue.pdf", bbox_inches="tight")
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+if len(params['red_particle_idx']) > 0:
+    test_pos = positions[:, params['red_mask']]
+    radii_r = radii[:, params['red_mask']]
+
+    fig, ax = plt.subplots(3, 3, figsize = (12, 12), sharex = 'row', sharey = 'row')
+    frame = np.argmin(hex_order_real_r)
+    n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_r))
+    ax[0, 0].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(test_pos[frame].shape[0]):
+        ax[0, 0].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_r[frame, i], color = 'red', fill = True))
+    ax[0, 0].set(title = f'Min -- {np.round(np.min(hex_order_real_r), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 0].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 0].set(xlabel = 'N', ylabel = 'N of neighbors pdf', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 0].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 0].set(xlabel = 'Angle [rad]', ylabel = 'Angle of neighbors pdf',  xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+
+    frame = np.argmax(hex_order_real_r)
+    n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_r))
+    ax[0, 1].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(test_pos[frame].shape[0]):
+        ax[0, 1].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_r[frame, i], color = 'red', fill = True))
+    ax[0, 1].set(title = f'Max -- {np.round(np.max(hex_order_real_r), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 1].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 1].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 1].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 1].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+
+    frame = params['n_frames'] - 1
+    n_of_neighbors_temp, theta = get_neighbours_props(test_pos[frame], np.mean(radii_r))
+    ax[0, 2].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(test_pos[frame].shape[0]):
+        ax[0, 2].add_artist(plt.Circle((test_pos[frame][i, 0], test_pos[frame][i, 1]), radii_r[frame, i], color = 'red', fill = True))
+    ax[0, 2].set(title = f'Last frame -- {np.round(hex_order_real_r[frame], 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 2].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+    #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_red.png", bbox_inches="tight")
+        plt.savefig(f"./{params['pdf_res_path']}/order_analysis/hex_order_examples_red.pdf", bbox_inches="tight")
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+    
+if len(params['red_particle_idx']) > 0 and len(params['blue_particle_idx']) > 0:
+    
+    fig, ax = plt.subplots(3, 3, figsize = (12, 12), sharex = 'row', sharey = 'row')
+    frame = np.argmin(hex_order_real)
+    n_of_neighbors_temp, theta = get_neighbours_props(positions[frame], np.mean(radii))
+    ax[0, 0].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(positions[frame].shape[0]):
+        ax[0, 0].add_artist(plt.Circle((positions[frame][i, 0], positions[frame][i, 1]), radii[frame, i], color = 'black', fill = True))
+    ax[0, 0].set(title = f'Min -- {np.round(np.min(hex_order_real), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 0].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 0].set(xlabel = 'N', ylabel = 'N of neighbors pdf', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 0].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 0].set(xlabel = 'Angle [rad]', ylabel = 'Angle of neighbors pdf',  xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+
+    frame = np.argmax(hex_order_real)
+    n_of_neighbors_temp, theta = get_neighbours_props(positions[frame], np.mean(radii))
+    ax[0, 1].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(positions[frame].shape[0]):
+        ax[0, 1].add_artist(plt.Circle((positions[frame][i, 0], positions[frame][i, 1]), radii[frame, i], color = 'black', fill = True))
+    ax[0, 1].set(title = f'Max -- {np.round(np.max(hex_order_real), 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 1].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 1].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 1].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 1].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+
+    frame = params['n_frames'] - 1
+    n_of_neighbors_temp, theta = get_neighbours_props(positions[frame], np.mean(radii))
+    ax[0, 2].imshow(get_frame(video, params['initial_offset'] + frame*params['subsample_factor'], params['xmin'], params['ymin'], params['xmax'], params['ymax'], params['resolution'], params['crop_verb']))
+    for i in range(positions[frame].shape[0]):
+        ax[0, 2].add_artist(plt.Circle((positions[frame][i, 0], positions[frame][i, 1]), radii[frame, i], color = 'black', fill = True))
+    ax[0, 2].set(title = f'Last frame -- {np.round(hex_order_real[frame], 2)}', xlim = (0, params['resolution']), ylim = (0, params['resolution']), xticks = [], yticks = [])
+    ax[1, 2].hist(n_of_neighbors_temp, bins = np.arange(0, 10), density = True, align = 'mid')
+    ax[1, 2].set(xlabel = 'N', xticks = np.arange(0, 10) + 0.5, xticklabels = np.arange(0, 10))
+    ax[2, 2].hist(np.array(theta), bins = np.linspace(-np.pi, np.pi, 20), density = True, align = 'mid')
+    ax[2, 2].set(xlabel = 'Angle [rad]', xticks = [-np.pi, -2*np.pi/3, -np.pi/3, -np.pi/6, 0, np.pi/6, np.pi/3, 2*np.pi/3, np.pi], xticklabels = [r'-$\pi$', r'-$\frac{2\pi}{3}$', r'-$\frac{\pi}{3}$', r'-$\frac{\pi}{6}$', '0', r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$', r'$\pi$'])
+    #plt.suptitle(f"Examples of droplet configurations -- {params['system_name']}")
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig(f"./{params['res_path']}/order_analysis/hex_order_examples_full.png", bbox_inches="tight")
+        plt.savefig(f"./{params['pdf_res_path']}/order_analysis/hex_order_examples_full.pdf", bbox_inches="tight")
+    if show_plots:
+        plt.show()
+    else:
+        plt.close()
+"""

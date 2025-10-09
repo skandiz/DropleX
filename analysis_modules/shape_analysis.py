@@ -49,14 +49,7 @@ def run_shape_analysis(trajectories, radii, eccentricity, frames, params, save_p
     for i, frame in enumerate(params['frames_stages']):
         ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
     ax.set(xlabel = r'$t_w$ [s]', ylabel = 'r [mm]', title = f"Droplets eccentricity of system {params['system_name']}")
-    if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-        ax.set(ylim =(0.1, 0.13),  xlim = (-200, 14000))
-    elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
-        ax.set(ylim = (1.7, 2.5))
-    elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-        ax.set(ylim = (0.3, .7))
-    else:
-        ax.set(ylim = (0, 0.5))
+    ax.set(ylim =(0.1, 0.13),  xlim = (-200, params['max_window_sec']))
     ax.grid(linewidth = 0.2)
     ax.legend(loc = (0.57, 0.5), fontsize = 10)
     if save_plots:
@@ -79,14 +72,7 @@ def run_shape_analysis(trajectories, radii, eccentricity, frames, params, save_p
     for i, frame in enumerate(params['frames_stages']):
         ax.bar(frame/params['fps'], height = 2000, width = params['window_length'], bottom = -10, color = params['stages_shades'][i], alpha = 0.5, label = f"Stage {i + 1}")
     ax.set(xlabel = r'$t_w$ [s]', ylabel = 'r [mm]', title = f"Droplets radius of system {params['system_name']}")
-    if params['trajectory_name'] in ['25b25r_lowconc_1', '25b25r_lowconc_2', '25b25r_lowconc_3', '25b25r_lowconc_5', '25b25r_lowconc_6']:
-        ax.set(ylim = (1.4, 2), xlim = (-200, 14000))
-    elif params['trajectory_name'] in ['25b25r-1', '25b25r-2']:
-        ax.set(ylim = (1.7, 2.5))
-    elif params['trajectory_name'] in ['1b_&_1r_1', '1b_&_1r_2', '1b_&_1r_3']:
-        ax.set(ylim = (2, 3))
-    else:
-        ax.set(ylim = (1.2, 2.2))
+    ax.set(ylim = (1.4, 2), xlim = (-200, params['max_window_sec']))
     ax.grid(linewidth = 0.2)
     ax.legend(loc = (0.57, 0.5), fontsize = 10)
     if save_plots:

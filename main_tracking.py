@@ -29,7 +29,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or '3' to suppress even more
 import tensorflow as tf
 import argparse
 
-from tracking_utils import ask_options, ask_yesno, user_message, print_recap_tracking, get_video_parameters, get_n_errors, draw_polygons, TrackingVideo, onClick, concat_dataframes, find_and_import_file
+from tracking_utils import ask_options, ask_yesno, user_message, print_recap_tracking, get_video_parameters, get_n_errors, draw_polygons, TrackingVideo, onClick, concat_dataframes, find_and_import_file, ensure_video_exists
 
 def main():
     print("\nWelcome to DropleX, the Python tool for tracking and analysis of active particles from videos!")
@@ -59,7 +59,10 @@ def main():
         
         video_option = ask_options("Which video do you want to analyze?", video_names)[0]
         video_selection = video_names[video_option - 1]
-                
+        
+        # if video is not in the video_input folder, download it.
+        #ensure_video_exists(video_selection)
+        
         # set model name and resolution 
         # list the directories under stardist_models folder
         model_names = [f for f in os.listdir('./stardist_models') if os.path.isdir(os.path.join('./stardist_models', f))]
@@ -94,6 +97,8 @@ def main():
         print("\nRunning in non-interactive mode. \n")
         video_selection = args.video
         
+        # if video is not in the video_input folder, download it.
+        #ensure_video_exists(video_selection)
         
         model_name = args.model
         steps = args.steps
@@ -476,12 +481,13 @@ def main():
             if filtered_detection_df is None:
                 print('Loading raw detections...')
                 raw_detection_df = find_and_import_file(tracking.res_path, 'raw_detection', analysis_frames[0], analysis_frames[-1])
-                filtered_detection_df = raw_detection_df.loc[(raw_detection_df.area > 500) & (raw_detection_df.prob > 0.7)]
+                filtered_detection_df = raw_detection_df.loc[(raw_detection_df.area > 500) & (raw_detection_df.prob > 0.7) & (raw_detection_df['intensity_mean-1'] > 110) & (raw_detection_df['intensity_mean-1'] < 140) & (raw_detection_df['intensity_mean-0'] > 83) & (np.sqrt((raw_detection_df.x - 500)**2 + (raw_detection_df.y - 500)**2) < 500)]
+                #filtered_detection_df = raw_detection_df.loc[(raw_detection_df['intensity_mean-1'] < 150) & (np.sqrt((raw_detection_df.x - 500)**2 + (raw_detection_df.y - 500)**2) < 500)]
                 counts_per_frame_filtered, err_frames_filtered, err_up_filtered, err_sub_filtered, max_n_of_consecutive_errs_filtered = get_n_errors(filtered_detection_df, tracking.n_instances, analysis_frames) 
                 del raw_detection_df
                 
             
-            raw_trajectory_df = tracking.linking_detection(filtered_detection_df, cutoff = 150, max_frame_gap = max_n_of_consecutive_errs_filtered + 5, min_trajectory_length = 50000)
+            raw_trajectory_df = tracking.linking_detection(filtered_detection_df, cutoff = 150, max_frame_gap = max_n_of_consecutive_errs_filtered + 5, min_trajectory_length = 50000)#int(0.9*len(analysis_frames)))
             
             # check if class_id is preserved in multiclass detection
             if tracking.model.config.n_classes is not None:    
